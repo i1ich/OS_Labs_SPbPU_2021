@@ -17,15 +17,16 @@ then
   echo "value should be valid path for FROM and TO, and positive integer for DT and OLD"
   echo "---------------------------------------------------------------------------------------------"
 else
-  sudo mkdir /var/run/daemontest
+  [ ! -d "/var/run/daemontest" ] && sudo mkdir /var/run/daemontest
   sudo chmod 777 /var/run/daemontest
   cmake -S src -B build
   cmake --build build --target all --config Release
-  #make run
   SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
   #echo "$1"
   echo ""$SCRIPTPATH"/build/lab1_2 $1"
+  cd ./build
+  rm -r ./CMakeFiles
+  ls | grep -v lab1_2 | xargs rm
+  cd ./..  
   "$SCRIPTPATH"/build/lab1_2 "$SCRIPTPATH"/src/"$1"
-  rm -r "$SCRIPTPATH"/build
 fi
-
