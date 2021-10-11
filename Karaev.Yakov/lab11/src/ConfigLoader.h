@@ -29,7 +29,7 @@ class ConfigLoader
 public:
     ConfigLoader() = delete;
 
-    explicit ConfigLoader(std::string  file_name);
+    explicit ConfigLoader(std::string const &  file_name);
     void load(LoaderTokens const * token_params);
     bool valid() const;
 };
