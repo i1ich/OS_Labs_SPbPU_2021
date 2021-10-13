@@ -295,10 +295,8 @@ bool Daemon::isFile(std::string const& path) {
         if (s.st_mode & S_IFREG) {
             return true;
         }
-        return false;
-    } else {
-        exit(666);
     }
+    return false;
 }
 
 
@@ -308,10 +306,8 @@ bool Daemon::isDir(std::string const& path) {
         if (s.st_mode & S_IFDIR) {
             return true;
         }
-        return false;
-    } else {
-        exit(666);
     }
+    return false;
 }
 
 
