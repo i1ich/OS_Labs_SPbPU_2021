@@ -1,14 +1,9 @@
 #include "parser.h"
 
-
-const std::map<std::string, Parser::configParameters> Parser::configParametersValues = {
-		{"time", TIME},
-		{"dirFrom", DIR1},
-		{"dirTo", DIR2}
-};
+Parser Parser::instance;
 
 
-std::map<Parser::configParameters, std::string> Parser::parameters;
+Parser& Parser::get() { return instance; }
 
 
 bool Parser::parseConfig(const std::string& configFile) {
@@ -24,11 +19,12 @@ bool Parser::parseConfig(const std::string& configFile) {
 	std::string value;
 
 	while (file >> key >> value) {
-        if (Parser::configParametersValues.find(key) == Parser::configParametersValues.end()) {
+        auto search = Parser::configParametersValues.find(key);
+        if (search == Parser::configParametersValues.end()) {
             syslog(LOG_ERR, "ERROR: wrong key in config");
             return false;
         }
-        switch (Parser::configParametersValues.at(key)) {
+        switch (search->second) {
             case TIME: {
                 if (!isValidTime(value)) {
                     file.close();

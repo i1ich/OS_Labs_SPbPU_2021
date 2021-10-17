@@ -6,54 +6,69 @@
 
 class Daemon {
 public:
-    static bool init(std::string const& configFile);
+    bool init(std::string const& configFile);
 
-    static void run();
+    void run();
 
-    static void stopDaemon();
+    void stopDaemon();
+
+    static Daemon& get();
 
 private:
-    static bool work();
+    Daemon() {}
 
-    static void signalHandler(int signal);
+    Daemon(Daemon const&) = delete;
 
-    static bool checkPid(pid_t pid);
+    Daemon & operator=(Daemon const&) = delete;
 
-    static bool handlePid();
+    bool work();
 
-    static bool setPid();
+    static void handleSignal(int signal);
 
-    static std::string getFullPath(std::string const& path);
+    bool checkPid(pid_t pid);
 
-    static bool loadConfig();
+    bool handlePid();
 
-    static void removeAllFilesFromDir(std::string const& dir);
+    bool setPid();
 
-    static void moveFiles(std::string const& fromDir, std::string const& toDir);
+    std::string getFullPath(std::string const& path);
 
-    static void moveFilesRecursively(std::string const& fromDir, std::string const& toDir,
+    bool loadConfig();
+
+    void removeAllFilesFromDir(std::string const& dir);
+
+    void moveFiles(std::string const& fromDir, std::string const& toDir);
+
+    void moveFilesRecursively(std::string const& fromDir, std::string const& toDir,
                                      std::string const& pathToIMG, std::string const& pathToOTHERS);
 
-    static bool exists(std::string const& path);
+    void makeDirWithCheck(std::string dirPath);
 
-    static bool isFile(std::string const& path);
+    bool exists(std::string const& path);
 
-    static bool isDir(std::string const& path);
+    bool isFile(std::string const& path);
 
-    static const std::string& getFolderName(std::string const& path);
+    bool isDir(std::string const& path);
 
-    static std::string configFile_;
-    static std::string pidFile_;
-    static std::string homeDir_;
+    const std::string& getFolderName(std::string const& path);
 
-    static int sleepTimeInterval_;
-    static std::string firstDir_;
-    static std::string secondDir_;
 
-    static bool workStatus_;
+    static Daemon instance;
 
-    static std::string IMGFolder;
-    static std::string OTHERSFolder;
+    std::string configFile_;
+    std::string pidFile_;
+    std::string homeDir_;
+
+    int sleepTimeInterval_;
+    std::string firstDir_;
+    std::string secondDir_;
+
+    bool workStatus_;
+
+    std::string IMGFolder;
+    std::string OTHERSFolder;
+
+
 
 };
 

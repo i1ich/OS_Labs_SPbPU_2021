@@ -11,19 +11,36 @@ public:
 		DIR2 = 2
 	};
 
-	static bool parseConfig(const std::string& configFile);
+    static Parser& get();
 
-	static std::map<configParameters, std::string> getParameters() { return parameters; }
+    bool parseConfig(const std::string& configFile);
+
+    std::map<configParameters, std::string> getParameters() { return parameters; }
 
 
 private:
-	static bool fillParameters(configParameters parameter, const std::string& parameterValue);
+    Parser() {
+        configParametersValues = {
+                {"time", Parser::TIME},
+                {"dirFrom", Parser::DIR1},
+                {"dirTo", Parser::DIR2}
+        };
+    }
 
-    static const std::map<std::string, configParameters> configParametersValues;
+    Parser(Parser const&) = delete;
 
-    static bool isValidTime(const std::string& stringTime);
+    Parser & operator=(Parser const&) = delete;
 
-    static std::map<configParameters, std::string> parameters;
+    bool fillParameters(configParameters parameter, const std::string& parameterValue);
+
+    bool isValidTime(const std::string& stringTime);
+
+
+    static Parser instance;
+
+    std::map<std::string, configParameters> configParametersValues;
+
+    std::map<configParameters, std::string> parameters;
 	
 };
 

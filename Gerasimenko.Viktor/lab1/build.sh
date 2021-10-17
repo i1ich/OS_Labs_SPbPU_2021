@@ -6,7 +6,7 @@ pidFilePath="/var/run/lab1.pid"
 
 sudo chmod 666 "$pidFilePath"
 
-cmake -Wall -Werror .
+cmake .
 make
 rm CMakeCache.txt Makefile cmake_install.cmake
 FILE=lab1.cbp

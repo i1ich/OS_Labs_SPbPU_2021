@@ -10,6 +10,8 @@
 #include <cstring>
 #include <map>
 #include <cstdio>
+#include <cctype>
+#include <algorithm>
 #include <sstream>
 #include <filesystem>
 

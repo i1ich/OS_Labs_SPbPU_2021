@@ -1,20 +1,21 @@
 #include "daemon.h"
 
-std::string Daemon::configFile_;
-std::string Daemon::pidFile_ = "/var/run/lab1.pid";
-std::string Daemon::homeDir_;
+Daemon Daemon::instance;
+//std::string Daemon::pidFile_ = "/var/run/lab1.pid";
+//
+//std::string Daemon::IMGFolder = "IMG";
+//std::string Daemon::OTHERSFolder = "OTHERS";
 
-int Daemon::sleepTimeInterval_;
-std::string Daemon::firstDir_;
-std::string Daemon::secondDir_;
-bool Daemon::workStatus_;
 
-std::string Daemon::IMGFolder = "IMG";
-std::string Daemon::OTHERSFolder = "OTHERS";
+Daemon& Daemon::get() { return Daemon::instance; }
 
 
 bool Daemon::init(std::string const& configFile) {
-    openlog((new std::string("MY_DAEMON"))->c_str(), LOG_NDELAY | LOG_PID, LOG_USER);
+    pidFile_ = "/var/run/lab1.pid";
+    OTHERSFolder = "OTHERS";
+    IMGFolder = "IMG";
+
+    openlog("MY_DAEMON", LOG_NDELAY | LOG_PID, LOG_USER);
     syslog(LOG_INFO, "INFO: Initializing daemon");
 
     workStatus_ = true;
@@ -68,13 +69,16 @@ bool Daemon::init(std::string const& configFile) {
     }
 
     int fd;
-    /* Close all open file descriptors */
     for (fd = sysconf(_SC_OPEN_MAX); fd > 0; fd--) {
         close(fd);
     }
 
-    signal(SIGHUP, signalHandler);
-    signal(SIGTERM, signalHandler);
+    for (int i = getdtablesize(); i >= 0; --i) {
+        close(i);
+    }
+
+    signal(SIGHUP, handleSignal);
+    signal(SIGTERM, handleSignal);
 
     if(!handlePid()) {
         syslog(LOG_ERR, "ERROR: Failed in handlePidFile");
@@ -118,12 +122,14 @@ void Daemon::stopDaemon() {
 bool Daemon::loadConfig() {
     syslog(LOG_INFO, "INFO: Loading config");
 
-    if (!Parser::parseConfig(configFile_)) {
+    Parser& parser = Parser::get();
+
+    if (!parser.parseConfig(configFile_)) {
         syslog(LOG_ERR, "ERROR: Parsing config");
         return false;
     }
 
-    std::map<Parser::configParameters, std::string> parameter = Parser::getParameters();
+    std::map<Parser::configParameters, std::string> parameter = parser.getParameters();
     sleepTimeInterval_ = std::stoi(parameter[Parser::TIME]);
     firstDir_ = getFullPath(parameter.at(Parser::DIR1));
     secondDir_ = getFullPath(parameter.at(Parser::DIR2));
@@ -184,16 +190,16 @@ bool Daemon::setPid() {
 }
 
 
-void Daemon::signalHandler(int signal) {
+void Daemon::handleSignal(int signal) {
     switch (signal) {
         case SIGHUP:
             syslog(LOG_INFO, "INFO: Updating config file");
-            if (!loadConfig()) {
-                stopDaemon();
+            if (!instance.loadConfig()) {
+                instance.stopDaemon();
             }
             break;
         case SIGTERM:
-            stopDaemon();
+            instance.stopDaemon();
             break;
         default:
             syslog(LOG_INFO, "INFO: Signal %i is not handled", signal);
@@ -215,16 +221,9 @@ bool Daemon::checkPid(pid_t pid) {
 
 
 void Daemon::removeAllFilesFromDir(std::string const& dir) {
-    DIR *theFolder = opendir(dir.c_str());
-    struct dirent *next_file;
-    char filepath[256];
-
-    while ( (next_file = readdir(theFolder)) != nullptr ) {
-        // build the path for each file in the folder
-        sprintf(filepath, "%s/%s", dir.c_str(), next_file->d_name);
-        remove(filepath);
+    for (auto& path: std::filesystem::directory_iterator(dir)) {
+        std::filesystem::remove_all(path);
     }
-    closedir(theFolder);
 }
 
 
@@ -251,15 +250,24 @@ void Daemon::moveFilesRecursively(std::string const& fromDir, std::string const&
                     return;
                 }
 
-                std::string fullPathTo = toDir + "/" + getFolderName(fullPathFrom) + "/" + curr->d_name;
+                std::string folderName = getFolderName(fullPathFrom);
+
+                if (folderName == IMGFolder) {
+                    makeDirWithCheck(pathToIMG);
+                } else if (folderName == OTHERSFolder) {
+                    makeDirWithCheck(pathToOTHERS);
+                }
+
+                std::string fullPathTo = toDir + "/" + folderName + "/" + curr->d_name;
                 std::ofstream dest_stream(fullPathTo, std::ios::binary);
                 if (!(dest_stream.is_open())) {
                     syslog(LOG_ERR, "ERROR: cannot open dst file stream");
                     src_stream.close();
                     return;
-                } else {
-                    dest_stream << src_stream.rdbuf();
                 }
+
+                dest_stream << src_stream.rdbuf();
+
                 src_stream.close();
                 dest_stream.close();
             }
@@ -274,12 +282,15 @@ void Daemon::moveFiles(std::string const& fromDir, std::string const& toDir) {
     std::string pathToIMG = toDir + "/" + IMGFolder;
     std::string pathToOTHERS = toDir + "/" + OTHERSFolder;
 
-    mkdir(pathToIMG.c_str(), ACCESSPERMS);
-    mkdir(pathToOTHERS.c_str(), ACCESSPERMS);
-
     syslog(LOG_INFO, "INFO: copy files from %s to %s", fromDir.c_str(), toDir.c_str());
 
     moveFilesRecursively(fromDir, toDir, pathToIMG, pathToOTHERS);
+}
+
+void Daemon::makeDirWithCheck(std::string dirPath) {
+    if (!exists(dirPath)) {
+        mkdir(dirPath.c_str(), ACCESSPERMS);
+    }
 }
 
 
@@ -312,7 +323,10 @@ bool Daemon::isDir(std::string const& path) {
 
 
 const std::string& Daemon::getFolderName(std::string const& path) {
-    if(path.substr(path.find_last_of('.') + 1) == "png") {
+    std::string extension = path.substr(path.find_last_of('.') + 1);
+    std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+
+    if(extension == "png") {
         return IMGFolder;
     } else {
         return OTHERSFolder;

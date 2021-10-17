@@ -7,8 +7,10 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    if (Daemon::init(argv[1])) {
-        Daemon::run();
+    Daemon &daemon = Daemon::get();
+
+    if (daemon.init(argv[1])) {
+        daemon.run();
     }
 
     return 0;
