@@ -1,0 +1,3 @@
+time 30
+dirFrom dir1/
+dirTo dir3/
