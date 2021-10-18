@@ -21,6 +21,8 @@ private:
     };
 
 private:
+    static Daemon* inst;
+
     static std::string const pid_file;
     static bool terminate;
     static bool reread;
@@ -37,12 +39,15 @@ private:
     bool first_line = true;
 
 public:
-    explicit Daemon(std::string const& config);
+    static Daemon* instance(std::string const& config);
+
     ~Daemon();
 
     int run();
 
 private:
+    explicit Daemon(std::string const& config);
+
     static void signal_handler(int signal_id);
     static void need_to_terminate();
     static void need_to_reread_congif();
@@ -61,4 +66,5 @@ private:
     char* file_content(std::string const& filename) const;
 
     Daemon() = delete;
+    Daemon& operator=(Daemon const&) = delete;
 };

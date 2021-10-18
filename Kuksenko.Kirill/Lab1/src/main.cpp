@@ -1,6 +1,5 @@
 #include "ConfigParser.h"
 #include "Daemon.h"
-#include "DaemonSingleton.h"
 
 #include <iostream>
 #include <filesystem>
@@ -12,6 +11,6 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    Daemon daemon = DaemonSingleton::instanse(argv[1])->value();
-    return daemon.run();
+    Daemon* daemon = Daemon::instance(argv[1]);
+    return daemon->run();
 }

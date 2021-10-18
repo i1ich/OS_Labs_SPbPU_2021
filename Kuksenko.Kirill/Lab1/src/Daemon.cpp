@@ -11,6 +11,7 @@
 
 std::vector<std::string> const DaemonGrammar::tokens = {"dir_in", "dir_out", "time"};
 
+Daemon* Daemon::inst = nullptr;
 std::string const Daemon::pid_file = std::filesystem::absolute("pid.pid");
 bool Daemon::terminate = false;
 bool Daemon::reread = false;
@@ -29,6 +30,14 @@ void Daemon::signal_handler(int signal_id) {
     default:
         break;
     }
+}
+
+Daemon* Daemon::instance(std::string const& config) {
+    if (!inst) {
+        inst = new Daemon(config);
+    }
+
+    return inst;
 }
 
 Daemon::Daemon(std::string const& config) : grammar(DaemonGrammar()), cfg{ std::filesystem::absolute(config) }, logger{ Logger("Daemom") } {
