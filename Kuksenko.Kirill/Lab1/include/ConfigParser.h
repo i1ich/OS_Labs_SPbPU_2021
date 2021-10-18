@@ -45,7 +45,7 @@ private:
 
 public:
     ConfigParser(std::string const& config, Grammar const& grammar);
-    ~ConfigParser() = default;
+    ~ConfigParser();
 
     std::vector<ConfigParser::Token> parse();
 };

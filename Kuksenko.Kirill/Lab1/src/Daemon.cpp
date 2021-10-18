@@ -40,7 +40,11 @@ Daemon* Daemon::instance(std::string const& config) {
     return inst;
 }
 
-Daemon::Daemon(std::string const& config) : grammar(DaemonGrammar()), cfg{ std::filesystem::absolute(config) }, logger{ Logger("Daemom") } {
+Daemon::Daemon(std::string const& config) : grammar(DaemonGrammar()), 
+                                            cfg{ std::filesystem::absolute(config) }, 
+                                            logger{ Logger("Daemom") },
+                                            absolute_path{ std::filesystem::current_path() } {
+    absolute_path += "/";
     reread_congig();
 }
 
@@ -51,17 +55,16 @@ Daemon::~Daemon() {
 int Daemon::reread_congig() {
     ConfigParser parser(cfg, grammar);
     parse_tokens(parser.parse());
-
     return 0;
 }
 
 void Daemon::parse_tokens(std::vector<ConfigParser::Token> const& tokens) {
     for (auto const& elem : tokens) {
         if (elem.token == grammar.get_token(TOKENS::DIR_IN)) {
-            dir_in = std::filesystem::absolute(elem.value);
+            dir_in = absolute_path + elem.value;
         }
         else if (elem.token == grammar.get_token(TOKENS::DIR_OUT)) {
-            dir_out = std::filesystem::absolute(elem.value);
+            dir_out = absolute_path + elem.value;
         }
         else if (elem.token == grammar.get_token(TOKENS::REPEAT_SIZE)) {
             repeat_time = std::stoi(elem.value);

@@ -36,6 +36,7 @@ private:
     size_t repeat_time;
     std::string output_filename = "total.log";
     std::string extension = ".log";
+    std::string absolute_path;
     bool first_line = true;
 
 public:

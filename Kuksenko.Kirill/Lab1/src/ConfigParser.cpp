@@ -4,6 +4,10 @@
 
 ConfigParser::ConfigParser(std::string const& config, Grammar const& grammar) : cfg(config), grammar{ grammar } {}
 
+ConfigParser::~ConfigParser() {
+    cfg.close();
+}
+
 ConfigParser::Token::Token(std::string const& token, std::string const& value) : token{ token }, value{ value } {}
 
 std::vector<ConfigParser::Token> ConfigParser::parse() {
