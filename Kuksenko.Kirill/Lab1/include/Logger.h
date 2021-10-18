@@ -11,9 +11,19 @@ public:
         ERROR,
     };
 
+private:
+    static Logger* inst;
+
 public:
-    Logger(std::string const& name);
+    static Logger* instance();
+    static void release();
+    
+    void log(LEVEL level, std::string const& message) const;
+
+private:
+    Logger();
     ~Logger();
 
-    void log(LEVEL level, std::string const& message) const;
+    Logger(Logger const&) = delete;
+    Logger& operator=(Logger const&) = delete;
 };

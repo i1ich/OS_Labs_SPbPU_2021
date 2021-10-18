@@ -4,11 +4,8 @@
 #include "Logger.h"
 
 class DaemonGrammar : public Grammar {
-private:
-    static std::vector<std::string> const tokens;
-
 public:
-    DaemonGrammar() : Grammar(tokens) {}
+    DaemonGrammar();
 
 };
 
@@ -29,7 +26,7 @@ private:
 
     Grammar grammar;
     std::string const cfg;
-    Logger logger;
+    Logger* logger;
 
     std::string dir_in;
     std::string dir_out;
@@ -41,6 +38,7 @@ private:
 
 public:
     static Daemon* instance(std::string const& config);
+    static void release();
 
     ~Daemon();
 

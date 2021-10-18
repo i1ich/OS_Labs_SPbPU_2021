@@ -9,7 +9,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 
-std::vector<std::string> const DaemonGrammar::tokens = {"dir_in", "dir_out", "time"};
+DaemonGrammar::DaemonGrammar() : Grammar{ {"dir_in", "dir_out", "time"} } {}
 
 Daemon* Daemon::inst = nullptr;
 std::string const Daemon::pid_file = std::filesystem::absolute("pid.pid");
@@ -40,16 +40,25 @@ Daemon* Daemon::instance(std::string const& config) {
     return inst;
 }
 
+void Daemon::release() {
+    if (inst) {
+        delete inst;
+        inst = nullptr;
+    }
+}
+
 Daemon::Daemon(std::string const& config) : grammar(DaemonGrammar()), 
                                             cfg{ std::filesystem::absolute(config) }, 
-                                            logger{ Logger("Daemom") },
+                                            logger{ Logger::instance() },
                                             absolute_path{ std::filesystem::current_path() } {
     absolute_path += "/";
     reread_congig();
 }
 
 Daemon::~Daemon() {
-    logger.log(Logger::INFO, "daemon is terminated");
+    logger->log(Logger::INFO, "daemon is terminated");
+
+    Logger::release();
 }
 
 int Daemon::reread_congig() {
@@ -70,13 +79,13 @@ void Daemon::parse_tokens(std::vector<ConfigParser::Token> const& tokens) {
             repeat_time = std::stoi(elem.value);
         }
         else {
-            logger.log(Logger::WARNING, "unknown config token");
+            logger->log(Logger::WARNING, "unknown config token");
         }
     }
 }
 
 int Daemon::run() {
-    logger.log(Logger::INFO, "daemon is runnig");
+    logger->log(Logger::INFO, "daemon is runnig");
 
     pid_t pid = executing_pid();
 
@@ -95,7 +104,7 @@ int Daemon::run() {
 
     setup_handler();
 
-    logger.log(Logger::INFO, "daemon is started to work");
+    logger->log(Logger::INFO, "daemon is started to work");
 
     while (!terminate) {
         if (reread) {
@@ -110,7 +119,7 @@ int Daemon::run() {
         sleep(repeat_time);
     }
 
-    logger.log(Logger::INFO, "daemon is finished work successfully");
+    logger->log(Logger::INFO, "daemon is finished work successfully");
     return EXIT_SUCCESS;
 }
 
@@ -122,7 +131,7 @@ pid_t Daemon::executing_pid() const {
     std::ifstream in_pid(pid_file);
 
     if (!in_pid.is_open()) {
-        logger.log(Logger::ERROR, "can't open pid file");
+        logger->log(Logger::ERROR, "can't open pid file");
         return -2;
     }
 
@@ -145,7 +154,7 @@ int Daemon::create_pid_file() const {
     std::ofstream out_pid(pid_file);
 
     if (!out_pid.is_open()) {
-        logger.log(Logger::ERROR, "can't create pid file");
+        logger->log(Logger::ERROR, "can't create pid file");
         return EXIT_FAILURE;
     }
 
@@ -209,7 +218,7 @@ int Daemon::work() {
     std::ofstream total_out(dir_out + std::string("/total.log"), std::ios::out | std::ios::app);
 
     if (!total_out.is_open()) {
-        logger.log(Logger::ERROR, "can't open total file");
+        logger->log(Logger::ERROR, "can't open total file");
         return EXIT_FAILURE;
     }
 
@@ -246,7 +255,7 @@ char* Daemon::file_content(std::string const& filename) const {
     FILE* file_in = fopen(filename.c_str(), "r");
 
     if (!file_in) {
-        logger.log(Logger::ERROR, "can't open file for read");
+        logger->log(Logger::ERROR, "can't open file for read");
         return nullptr;
     }
 
@@ -258,7 +267,7 @@ char* Daemon::file_content(std::string const& filename) const {
     if (!file_data) {
         fclose(file_in);
 
-        logger.log(Logger::ERROR, "memory allocation error");
+        logger->log(Logger::ERROR, "memory allocation error");
         return nullptr;
     }
 

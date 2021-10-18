@@ -1,7 +1,27 @@
 #include "Logger.h"
 
-Logger::Logger(std::string const& name) {
-    openlog(name.c_str(), LOG_PID, 0);
+#include <iostream>
+
+Logger* Logger::inst = nullptr;
+
+
+Logger* Logger::instance() {
+    if (!inst) {
+        inst = new Logger();
+    }
+
+    return inst;
+}
+
+void Logger::release() {
+    if (inst) {
+        delete inst;
+        inst = nullptr;
+    }
+}
+
+Logger::Logger() {
+    openlog(NULL, LOG_PID, 0);
 }
 
 Logger::~Logger() {
@@ -16,9 +36,11 @@ void Logger::log(LEVEL level, std::string const& message) const {
     
     case LEVEL::WARNING:
         syslog(LOG_WARNING, ": %s", message.c_str());
+        break;
 
     case LEVEL::ERROR:
         syslog(LOG_ERR, ": %s", message.c_str());
+        break;
 
     default:
         break;

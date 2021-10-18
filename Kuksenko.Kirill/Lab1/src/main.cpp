@@ -12,5 +12,9 @@ int main(int argc, char** argv) {
     }
 
     Daemon* daemon = Daemon::instance(argv[1]);
-    return daemon->run();
+
+    int res = daemon->run();
+    Daemon::release();
+
+    return res;
 }
