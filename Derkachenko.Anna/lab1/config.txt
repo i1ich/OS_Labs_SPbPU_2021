@@ -1,0 +1,3 @@
+input /home/ann/Documents/daemon/dir1
+output /home/ann/Documents/daemon/dir2
+time 30
