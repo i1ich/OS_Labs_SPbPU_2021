@@ -252,29 +252,27 @@ int Daemon::work() {
 }
 
 char* Daemon::file_content(std::string const& filename) const {
-    FILE* file_in = fopen(filename.c_str(), "r");
+    std::ifstream file_in(filename);
 
-    if (!file_in) {
+    if (!file_in.is_open()) {
         logger->log(Logger::ERROR, "can't open file for read");
         return nullptr;
     }
 
-    fseek(file_in, 0, SEEK_END);
-    size_t file_size = ftell(file_in);
-    fseek(file_in, 0, SEEK_SET);
+    file_in.seekg(0, std::ios::end);
+    size_t file_size = file_in.tellg();
+    file_in.seekg(0, std::ios::beg);
     char* file_data = new char[file_size];
     
-    if (!file_data) {
-        fclose(file_in);
+    if (!file_size) {
+        file_in.close();
 
         logger->log(Logger::ERROR, "memory allocation error");
         return nullptr;
     }
 
-    size_t readed_size = fread(file_data, sizeof(char), file_size, file_in);
-    file_data[readed_size] = 0;
-
-    fclose(file_in);
+    file_in.read(file_data, file_size);
+    file_in.close();
 
     return file_data;
 }

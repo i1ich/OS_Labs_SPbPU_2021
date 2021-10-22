@@ -48,8 +48,6 @@ private:
     explicit Daemon(std::string const& config);
 
     static void signal_handler(int signal_id);
-    static void need_to_terminate();
-    static void need_to_reread_congif();
 
     void parse_tokens(std::vector<ConfigParser::Token> const& tokens);
 
