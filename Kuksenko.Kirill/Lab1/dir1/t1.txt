@@ -1,0 +1,3 @@
+some line
+txt file
+one more line
