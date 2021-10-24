@@ -40,9 +40,7 @@ void ConfigLoader::load(LoaderTokens const *token_params)
 
 ConfigLoader::ConfigLoader(std::string const & file_name): input_file_name(file_name), input_file(file_name)
 {
-    fine &= input_file.good();
-    fine &= (!input_file.eof());
-    input_file.close();
+    fine = true;
 }
 
 bool ConfigLoader::valid() const
