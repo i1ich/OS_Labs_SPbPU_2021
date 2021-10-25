@@ -45,7 +45,7 @@ private:
 
     bool setConfig(const std::string &configFile);
     bool loadConfig();
-    static void signalHandler(int signalNum);
+    void signalHandler(int signalNum);
 
     bool initPid();
     bool initTread();

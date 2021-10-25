@@ -101,15 +101,14 @@ void Daemon::checkPid() {
     }
     pid_t other;
     pidFile >> other;
-
     syslog(LOG_INFO, "Close PID file");
     pidFile.close();
 
+    struct stat sb;
     std::string path = "/proc/" + std::to_string(other);
-    if (std::filesystem::exists(path)) {
+    if (stat(path.c_str(), &sb) == 0) {
         kill(other, SIGTERM);
     }
-
     savePid();
 }
 
