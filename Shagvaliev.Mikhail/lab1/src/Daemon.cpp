@@ -28,54 +28,54 @@ bool Daemon::setUp(const std::string& configFile_) {
     homeDir = buff;
     configFile = convertToFullPath(configFile_);
 
-//
-//    pid_t pid = fork();
-//
-//    if (!validatePid(pid)) {
-//        return false;
-//    }
-//
-//    logger.logInfo("First fork success");
-//
-//    if (setsid() == -1) {
-//        logger.logError("Failed in setsid: " + std::to_string(errno));
-//        stop();
-//        return false;
-//    }
-//
-//    pid = fork();
-//
-//    if (!validatePid(pid)) {
-//        return false;
-//    }
-//
-//    logger.logInfo("Second fork success");
-//
-//    umask(0);
-//
-//    if ((chdir("/")) == -1) {
-//        logger.logError("Failed in chdir: " + std::to_string(errno));
-//        stop();
-//        return false;
-//    }
-//
-//    int fd;
-//    for (fd = sysconf(_SC_OPEN_MAX); fd > 0; fd--) {
-//        close(fd);
-//    }
-//
-//    for (int i = getdtablesize(); i >= 0; --i) {
-//        close(i);
-//    }
-//
-//    signal(SIGHUP, processSignal);
-//    signal(SIGTERM, processSignal);
-//
-//    if(!processPid()) {
-//        logger.logError("Failed in handlePidFil");
-//        stop();
-//        return false;
-//    }
+
+    pid_t pid = fork();
+
+    if (!validatePid(pid)) {
+        return false;
+    }
+
+    logger.logInfo("First fork success");
+
+    if (setsid() == -1) {
+        logger.logError("Failed in setsid: " + std::to_string(errno));
+        stop();
+        return false;
+    }
+
+    pid = fork();
+
+    if (!validatePid(pid)) {
+        return false;
+    }
+
+    logger.logInfo("Second fork success");
+
+    umask(0);
+
+    if ((chdir("/")) == -1) {
+        logger.logError("Failed in chdir: " + std::to_string(errno));
+        stop();
+        return false;
+    }
+
+    int fd;
+    for (fd = sysconf(_SC_OPEN_MAX); fd > 0; fd--) {
+        close(fd);
+    }
+
+    for (int i = getdtablesize(); i >= 0; --i) {
+        close(i);
+    }
+
+    signal(SIGHUP, processSignal);
+    signal(SIGTERM, processSignal);
+
+    if(!processPid()) {
+        logger.logError("Failed in handlePidFil");
+        stop();
+        return false;
+    }
 
     if(!loadConfig()) {
         logger.logError("Failed loading config");
