@@ -1,0 +1,3 @@
+/home/pikabol88/CLionProjects/daemon_lab/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/pikabol88/CLionProjects/daemon_lab/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/pikabol88/CLionProjects/daemon_lab/cmake-build-debug/CMakeFiles/daemon_lab.dir
