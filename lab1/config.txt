@@ -1,0 +1,4 @@
+WaitingTime = 30
+TimeDifference = 600
+Dir1 = /home/ignat/CLionProjects/Daemon/dir1/
+Dir2 = /home/ignat/CLionProjects/Daemon/dir2/
