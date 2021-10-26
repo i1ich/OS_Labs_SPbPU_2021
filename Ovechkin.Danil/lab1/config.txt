@@ -1,0 +1,2 @@
+TIME 5
+DIR1 dir1
