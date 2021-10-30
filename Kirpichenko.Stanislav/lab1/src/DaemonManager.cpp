@@ -1,6 +1,3 @@
-#include "DaemonManager.h"
-#include "Daemon.h"
-
 #include <signal.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -8,16 +5,15 @@
 #include <exception>
 #include <string>
 
-const char* DaemonManager::_pidFilename = "/var/run/kirpichenko_daemon/.pid";
-std::string DaemonManager::_cfgPath;
-Daemon* DaemonManager::_daemon = nullptr;
+#include "DaemonManager.h"
+#include "Daemon.h"
+
+const std::string_view DaemonManager::_pidFilename = "/var/run/kirpichenko_daemon/.pid";
 
 void DaemonManager::writePID(std::ofstream& pidFile) {
     if (!pidFile.good()) {
         std::string msg("Unable to write a pid file (");
-        msg.append(_pidFilename);
-        msg.append(")!");
-        throw std::runtime_error(msg);
+        throw std::runtime_error(msg + _pidFilename.data() + ")!");
     }
     pidFile << getpid();
 }
@@ -41,8 +37,8 @@ void DaemonManager::findConfig() {
     throw std::runtime_error("Unable to find .cfg file");
 }
 
-void DaemonManager::createNewSession() {
-    std::ifstream pidFileIn(_pidFilename, std::ios_base::in);
+void DaemonManager::startNewSession(const char* cfgPath) {
+    std::ifstream pidFileIn(_pidFilename.data(), std::ios_base::in);
     pid_t pid = readPID(pidFileIn);
     if (pid > 0 && kill(pid, 0) == 0) {  // process with this pid exists
         if (kill(pid, SIGTERM) == -1) {
@@ -51,11 +47,16 @@ void DaemonManager::createNewSession() {
         syslog(LOG_INFO, "Previous daemon with pid %i was killed", pid);
     }
     pidFileIn.close();
-    std::ofstream pidFileOut(_pidFilename, std::ios_base::out | std::ios_base::trunc);
+    std::ofstream pidFileOut(_pidFilename.data(), std::ios_base::out | std::ios_base::trunc);
     writePID(pidFileOut);
     pidFileOut.close();
     if (_cfgPath.empty()) {
-        findConfig();
+        if (!cfgPath) {
+            findConfig();
+        }
+        else {
+            _cfgPath.assign(std::filesystem::canonical(cfgPath));
+        }
     }
     if (chdir("/") == -1) {
         syslog(LOG_WARNING, "Unable to change working directory");
@@ -64,8 +65,7 @@ void DaemonManager::createNewSession() {
         signal(SIGHUP, DaemonManager::signalHandler) == SIG_ERR) {
         throw std::runtime_error("Unable to set signals handler");
     }
-    _daemon = Daemon::getDaemon();
-    _daemon->proceed();
+    Singleton<Daemon>::getInstance()->proceed();
 }
 
 const char* DaemonManager::getConfigPath() {
@@ -75,11 +75,11 @@ const char* DaemonManager::getConfigPath() {
 void DaemonManager::signalHandler(int signal) {
     switch (signal) {
         case SIGHUP:
-        _daemon->queryConfigReload();
+        Singleton<Daemon>::getInstance()->queryConfigReload();
         syslog(LOG_INFO, "Loading new config file");
         break;
         case SIGTERM:
-        _daemon->stop();
+        Singleton<Daemon>::getInstance()->stop();
         syslog(LOG_INFO, "Daemon ends its work due to SIGTERM signal");
         break;
     }

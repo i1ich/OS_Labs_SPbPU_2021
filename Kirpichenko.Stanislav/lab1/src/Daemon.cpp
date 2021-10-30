@@ -1,23 +1,16 @@
 #include <fstream>
 #include <syslog.h>
 #include <sys/wait.h>
+#include <unistd.h>
+#include <string>
+
 #include "Daemon.h"
 #include "DaemonManager.h"
-
-
-std::unique_ptr<Daemon> Daemon::_instance = nullptr;
-
-Daemon* Daemon::getDaemon() {
-    if (!_instance) {
-        _instance.reset(new Daemon());
-    }
-    return _instance.get();
-}
 
 void Daemon::parseConfig(const char* configPath) {
     std::ifstream cfg(configPath);
     if (cfg.bad()) {
-        throw std::runtime_error("Unable to read config file");
+        throw std::runtime_error(std::string("Unable to read config file ") + configPath);
     }
     std::string line;
     while (cfg.good() && line.empty()) {
@@ -30,12 +23,13 @@ void Daemon::parseConfig(const char* configPath) {
     }
     _folder2 = line;
     if (!std::filesystem::is_directory(_folder1) || !std::filesystem::is_directory(_folder2)) {
-        throw std::runtime_error("Check config file");
+        throw std::runtime_error(std::string("Check config file ") + configPath);
     }
+    syslog(LOG_INFO, "Config file %s is loaded", configPath);
 }
 
 Daemon::Daemon() {
-    parseConfig(DaemonManager::getConfigPath());
+    parseConfig(Singleton<DaemonManager>::getInstance()->getConfigPath());
 }
 
 bool Daemon::makeJob() {
@@ -68,7 +62,7 @@ void Daemon::proceed() {
         }
         if (_needToReloadCfg) {
             _needToReloadCfg = false;
-            parseConfig(DaemonManager::getConfigPath());
+            parseConfig(Singleton<DaemonManager>::getInstance()->getConfigPath());
         }
     }
     syslog(LOG_WARNING, "Daemon ends its work due to occured error");

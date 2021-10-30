@@ -8,5 +8,7 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp
                 Daemon.h
                 DaemonManager.cpp
                 DaemonManager.h
+                Singleton.tpp
+                Singleton.h
                 )
 
