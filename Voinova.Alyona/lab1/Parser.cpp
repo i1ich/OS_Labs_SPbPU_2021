@@ -20,17 +20,13 @@ bool Parser::parseConfig(std::string &configFileName) {
     for(int i =0; i< _grammar.getGrammarCount(); i++){
         std::string parameter;
         std::string value;
-        try {
-            configFile >> parameter;
-            configFile >> value;
-            Grammar::ConfigParams cp = _grammar.getGrammarValue(parameter);
-            if(cp == Grammar::DEFAULT) {
-                throw std::runtime_error("Config file don't open");
-            }
-            _config.insert({cp, value});
-        } catch (...) {
-            throw std::runtime_error("Couldn't parse line " + std::to_string(i));
+        configFile >> parameter;
+        configFile >> value;
+        Grammar::ConfigParams cp = _grammar.getGrammarValue(parameter);
+        if(cp == Grammar::DEFAULT) {
+            throw std::runtime_error("Config file don't open");
         }
+        _config.insert({cp, value});
     }
     return true;
 }
@@ -40,21 +36,15 @@ std::map<Parser::Grammar::ConfigParams, std::string> Parser::getParams() {
 }
 
 Parser::Grammar::ConfigParams Parser::Grammar::getGrammarValue(const std::string value) {
-    try{
-        Parser::Grammar::ConfigParams result = _grammar.at(value);
-        return result;
-    } catch (std::out_of_range const&) {
-        return Parser::Grammar::ConfigParams::DEFAULT;
-    }
+    Parser::Grammar::ConfigParams result = _grammar.at(value);
+    return result;
 }
 
-Parser::Grammar::Grammar() {
-    _grammar = {
-            {"time", ConfigParams::TIME_DELAY},
-            {"dir1", ConfigParams::DIRECTORY1},
-            {"dir2", ConfigParams::DIRECTORY2}
-    };
-}
+Parser::Grammar::Grammar():
+    _grammar({
+        {"time", ConfigParams::TIME_DELAY},
+        {"dir1", ConfigParams::DIRECTORY1},
+        {"dir2", ConfigParams::DIRECTORY2} }) {};
 
 int Parser::Grammar::getGrammarCount() {
     return _grammar.size();

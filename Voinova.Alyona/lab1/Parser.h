@@ -28,7 +28,7 @@ public:
         ConfigParams getGrammarValue(std::string value);
 
     private:
-        std::map<std::string, ConfigParams> _grammar;
+        const std::map<std::string, ConfigParams> _grammar;
 
         Grammar(Grammar const&) = delete;
         Grammar & operator=(Grammar const&) = delete;

@@ -10,35 +10,25 @@ Daemon &Daemon::getInstance() {
     return _instance;
 }
 
-bool Daemon::init(const std::string &config) {
+void Daemon::init(const std::string &config) {
     _pidFileName = "/var/run/lab1.pid";
     openlog("daemon", LOG_PID|LOG_NDELAY, LOG_USER);
     syslog(LOG_INFO, "Initializing daemon");
 
-    try {
-        char buf[FILENAME_MAX];
-        if (!getcwd(buf, FILENAME_MAX)) {
-            throw std::runtime_error("Failed in getcwd");
-        }
-        _homeDir = buf;
-        syslog(LOG_INFO, "Dir home - %s", buf);
-        if (!initTread()) {
-            return false;
-        }
-        initSignals();
-        setConfig(config);
-        loadConfig();
-
-        syslog(LOG_INFO, "Daemon is successfully initialized");
-        _isRunning = true;
-
-    } catch(std::exception const& e) {
-        syslog(LOG_ERR, "ERROR:: %s", e.what());
-        Daemon::getInstance().terminate();
-        return false;
+    char buf[FILENAME_MAX];
+    if (!getcwd(buf, FILENAME_MAX)) {
+        throw std::runtime_error("Failed in getcwd");
     }
+    _homeDir = buf;
+    syslog(LOG_INFO, "Dir home - %s", buf);
+    
+    initTread();
+    initSignals();
+    setConfig(config);
+    loadConfig();
 
-    return true;
+    syslog(LOG_INFO, "Daemon is successfully initialized");
+    _isRunning = true;
 }
 
 void Daemon::run() {
@@ -57,7 +47,7 @@ void Daemon::terminate() {
     closelog();
 }
 
-bool Daemon::initTread() {
+void Daemon::initTread() {
     syslog(LOG_INFO, "Start init thread");
     pid_t pid_t = fork();
     if (pid_t == -1) {
@@ -65,10 +55,9 @@ bool Daemon::initTread() {
     } else if (pid_t == 0) {
         return initPid();
     }
-    return false;
 }
 
-bool Daemon::initPid(){
+void Daemon::initPid(){
     if (setsid() == -1) {
         throw std::runtime_error("Setsid return error");
     }
@@ -77,7 +66,7 @@ bool Daemon::initPid(){
         throw std::runtime_error("Fork failed");
     }
     if(pid != 0){
-        return false;
+        return;
     }
     umask(0);
     if (chdir("/") == -1) {
@@ -87,10 +76,7 @@ bool Daemon::initPid(){
     if (close(STDIN_FILENO) == -1 || close(STDOUT_FILENO) == -1 || close(STDERR_FILENO) == -1) {
         throw std::runtime_error("Close return error: %d");
     }
-
     checkPid();
-
-    return true;
 }
 
 void Daemon::checkPid() {
@@ -101,14 +87,15 @@ void Daemon::checkPid() {
     }
     pid_t other;
     pidFile >> other;
+
     syslog(LOG_INFO, "Close PID file");
     pidFile.close();
 
-    struct stat sb;
     std::string path = "/proc/" + std::to_string(other);
-    if (stat(path.c_str(), &sb) == 0) {
+    if (std::filesystem::exists(path)) {
         kill(other, SIGTERM);
     }
+
     savePid();
 }
 
@@ -181,7 +168,7 @@ std::string Daemon::getAbsPath(const std::string &path) {
         throw std::runtime_error("Couldn't find path:" + path);
     }
     std::string resultPath(result);
-    delete result;
+    free(result);
     return resultPath;
 }
 
@@ -204,4 +191,3 @@ void Daemon::removeAllFilesFromDir(std::string const& dir) {
         std::filesystem::remove_all(path);
     }
 }
-

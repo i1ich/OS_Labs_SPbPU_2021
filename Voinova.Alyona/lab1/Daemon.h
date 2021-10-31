@@ -19,8 +19,9 @@
 
 class Daemon {
 public:
-    bool init(const std::string &config);
+    void init(const std::string &config);
     void run();
+    void terminate();
 
     static Daemon& getInstance();
 
@@ -41,14 +42,12 @@ private:
     Daemon(Daemon const&) = delete;
     Daemon & operator=(Daemon const&) = delete;
 
-    void terminate();
-
     bool setConfig(const std::string &configFile);
     bool loadConfig();
-    void signalHandler(int signalNum);
+    static void signalHandler(int signalNum);
 
-    bool initPid();
-    bool initTread();
+    void initPid();
+    void initTread();
     void initSignals();
 
     std::string getAbsPath(const std::string &path);
