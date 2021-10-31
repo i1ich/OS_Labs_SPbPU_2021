@@ -21,8 +21,11 @@ void Daemon::init(const std::string &config) {
     }
     _homeDir = buf;
     syslog(LOG_INFO, "Dir home - %s", buf);
-    
-    initTread();
+
+    if(!initTread()){
+        return;
+    }
+
     initSignals();
     setConfig(config);
     loadConfig();
@@ -47,7 +50,7 @@ void Daemon::terminate() {
     closelog();
 }
 
-void Daemon::initTread() {
+bool Daemon::initTread() {
     syslog(LOG_INFO, "Start init thread");
     pid_t pid_t = fork();
     if (pid_t == -1) {
@@ -55,9 +58,10 @@ void Daemon::initTread() {
     } else if (pid_t == 0) {
         return initPid();
     }
+    return false;
 }
 
-void Daemon::initPid(){
+bool Daemon::initPid(){
     if (setsid() == -1) {
         throw std::runtime_error("Setsid return error");
     }
@@ -66,7 +70,7 @@ void Daemon::initPid(){
         throw std::runtime_error("Fork failed");
     }
     if(pid != 0){
-        return;
+        return false;
     }
     umask(0);
     if (chdir("/") == -1) {
@@ -77,6 +81,8 @@ void Daemon::initPid(){
         throw std::runtime_error("Close return error: %d");
     }
     checkPid();
+
+    return true;
 }
 
 void Daemon::checkPid() {
@@ -134,28 +140,23 @@ void Daemon::signalHandler(int signalNum) {
     }
 }
 
-bool Daemon::loadConfig() {
+void Daemon::loadConfig() {
     syslog(LOG_INFO, "Reading config file");
     std::map<Parser::Grammar::ConfigParams, std::string> config;
     Parser& parser = Parser::getInstance();
-    if(!parser.parseConfig(_configFile)){
-        throw std::runtime_error("Can't parse config");
-    }
+    parser.parseConfig(_configFile);
     config = parser.getParams();
     _delayTimeInterval = std::stoi(config[Parser::Grammar::ConfigParams::TIME_DELAY]);
     _dir1 = getAbsPath(config[Parser::Grammar::ConfigParams::DIRECTORY1]);
     _dir2 = getAbsPath(config[Parser::Grammar::ConfigParams::DIRECTORY2]);
-
-    return true;
 }
 
-bool Daemon::setConfig(const std::string &configFile) {
+void Daemon::setConfig(const std::string &configFile) {
     _configFile = getAbsPath(configFile);
     if (_configFile.empty()) {
         throw std::runtime_error("Wrong config file full path " +  _configFile);
     }
     syslog(LOG_INFO, "Config full path - %s", _configFile.c_str());
-    return true;
 }
 
 std::string Daemon::getAbsPath(const std::string &path) {

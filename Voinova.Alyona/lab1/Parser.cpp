@@ -2,6 +2,7 @@
 // Created by pikabol88 on 10/22/21.
 //
 
+#include <sys/syslog.h>
 #include "Parser.h"
 
 Parser Parser::_instance;
@@ -10,8 +11,12 @@ Parser &Parser::getInstance() {
     return _instance;
 }
 
-bool Parser::parseConfig(std::string &configFileName) {
+void Parser::parseConfig(std::string &configFileName) {
     std::ifstream configFile(configFileName);
+
+    if(!_config.empty()) {
+        _config.clear();
+    }
 
     if (!configFile.is_open()) {
         throw std::runtime_error("Config file don't open");
@@ -28,7 +33,8 @@ bool Parser::parseConfig(std::string &configFileName) {
         }
         _config.insert({cp, value});
     }
-    return true;
+    //
+    syslog(LOG_INFO, "DONE");
 }
 
 std::map<Parser::Grammar::ConfigParams, std::string> Parser::getParams() {

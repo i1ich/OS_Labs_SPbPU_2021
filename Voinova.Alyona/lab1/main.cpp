@@ -2,7 +2,7 @@
 #include "Daemon.h"
 
 int main(int argc, char **argv) {
-    try{
+    try {
         if(argc!=2){
             std::cout<<"Not enough arguments"<<std::endl;
             return -1;

@@ -42,12 +42,12 @@ private:
     Daemon(Daemon const&) = delete;
     Daemon & operator=(Daemon const&) = delete;
 
-    bool setConfig(const std::string &configFile);
-    bool loadConfig();
+    void setConfig(const std::string &configFile);
+    void loadConfig();
     static void signalHandler(int signalNum);
 
-    void initPid();
-    void initTread();
+    bool initPid();
+    bool initTread();
     void initSignals();
 
     std::string getAbsPath(const std::string &path);
