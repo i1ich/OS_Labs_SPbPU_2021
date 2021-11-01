@@ -32,7 +32,6 @@ bool Daemon::init() {
     if (!_parser.parse()) {
         stopDaemon();
         syslog(LOG_ERR, "ERROR: Can't parse config");
-        std::cout << "ERROR: Can't parse config" << std::endl;
         return false;
     }
 
@@ -44,14 +43,12 @@ bool Daemon::init() {
     if (setsid() < 0) {
         stopDaemon();
         syslog(LOG_ERR, "ERROR: Can't create session");
-        std::cout << "ERROR: Can't create session" << std::endl;
         return false;
     }
 
     if (chdir("/") == -1) {
         stopDaemon();
         syslog(LOG_ERR, "ERROR: Can't change working directory");
-        std::cout << "ERROR: Can't change working directory" << std::endl;
         return false;
     }
 
@@ -64,7 +61,6 @@ bool Daemon::init() {
 
     if (!setPidFile()) {
         syslog(LOG_ERR, "ERROR: In create pid file");
-        std::cout << "ERROR: In create pid file" << std::endl;
     }
 
     return true;
@@ -75,7 +71,6 @@ bool Daemon::checkPid(pid_t pid) {
         case -1:
             stopDaemon();
             syslog(LOG_ERR, "ERROR: Can't create child");
-            std::cout << "ERROR: Can't create child" << std::endl;
             return false;
         case 0:
             syslog(LOG_INFO, "INFO: Create child process");
@@ -114,7 +109,6 @@ bool Daemon::setPidFile() {
         if (!pid) {
             stopDaemon();
             syslog(LOG_ERR, "ERROR: Can't get pid\n");
-            std::cout << "ERROR: Can't get pid" << std::endl;
             return false;
         }
         out << getpid() << std::endl;
@@ -123,7 +117,6 @@ bool Daemon::setPidFile() {
     }
     stopDaemon();
     syslog(LOG_ERR, "ERROR: Can't create pid file\n");
-    std::cout << "ERROR: Can't create pid file" << std::endl;
     return false;
 }
 
@@ -131,9 +124,7 @@ void Daemon::run() {
     std::pair<std::string, int> record;
     while (runDaemon && _parser.getPath(record)) {
         work(record);
-        std::cout << "Before sleep" << std::endl;
         sleep(SLEEPTIME);
-        std::cout << "After sleep" << std::endl;
         if (readAgain) {
             _parser.parse();
             readAgain = false;
@@ -149,7 +140,6 @@ void Daemon::work(std::pair<std::string, int> record) {
     std::filesystem::path startPath(path);
     if (startPath.empty()) {
         syslog(LOG_ERR, "ERROR: Can't find path:{%s}", path.c_str());
-        std::cout << "ERROR: Can't find path:" << std::endl;
     }
     recursiveDelete(startPath, depth - 1);
 }
