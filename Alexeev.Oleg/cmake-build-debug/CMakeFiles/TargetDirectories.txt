@@ -1,3 +1,0 @@
-/home/oleg/CLionProjects/OS_Labs_SPbPU_2021/Alexeev.Oleg/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/oleg/CLionProjects/OS_Labs_SPbPU_2021/Alexeev.Oleg/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/oleg/CLionProjects/OS_Labs_SPbPU_2021/Alexeev.Oleg/cmake-build-debug/CMakeFiles/lab_1.dir
