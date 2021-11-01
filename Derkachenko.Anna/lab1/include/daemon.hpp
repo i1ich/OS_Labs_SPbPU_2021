@@ -1,19 +1,20 @@
 #pragma once
 #include "config.hpp"
+#include "logger.hpp"
 
 class Daemon
 {
 private:
+    static Logger logger;
     static std::string configPath;
     static Config config;
     std::string pidFilePath;
-    std::string logFile = "hist.log";
-    std::string procDir = "/proc";
-    std::string syslogProcName = "myDaemon";
+    const std::string logFile = "hist.log";
+    const std::string procDir = "/proc";
+
+    Daemon(const std::string &path);
 
 protected:
-    Daemon(const std::string& path);
-
     static void signalHandler(int signal);
 
     void closeRunning();

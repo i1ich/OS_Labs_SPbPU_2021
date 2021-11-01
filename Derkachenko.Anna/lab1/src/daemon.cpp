@@ -3,6 +3,7 @@
 #include <csignal>
 #include <ctime>
 #include <filesystem>
+#include <iostream>
 #include <sys/stat.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -11,16 +12,23 @@ namespace fs = std::filesystem;
 
 std::string Daemon::configPath;
 Config Daemon::config;
+Logger Daemon::logger;
 
-Daemon& Daemon::create(const std::string& path)
+Daemon &Daemon::create(const std::string &path)
 {
+    if (!fs::exists(path))
+    {
+        logger.log("Config path doesn't exist \nTerminating");
+        std::exit(EXIT_FAILURE);
+    }
+
     // local static variable ensures memory is freed when program terminates
     // initialized on first use and never after
     static Daemon instance(path);
     return instance;
 }
 
-Daemon::Daemon(const std::string& path)
+Daemon::Daemon(const std::string &path)
 {
     configPath = fs::absolute(path);
     pidFilePath = fs::absolute("myDaemon.txt");
@@ -31,7 +39,7 @@ void Daemon::start()
 {
     closeRunning();
     daemonize();
-    syslog(LOG_NOTICE, "Daemon started");
+    logger.log("Daemon started");
 
     while (true)
     {
@@ -60,9 +68,9 @@ void Daemon::signalHandler(int signal)
         config.read(configPath);
     if (signal == SIGTERM)
     {
-        syslog(LOG_NOTICE, "Deamon terminated");
-        closelog();
-        exit(EXIT_SUCCESS);
+        logger.log("Deamon terminated");
+        logger.closeSyslog();
+        std::exit(EXIT_SUCCESS);
     }
 }
 
@@ -70,23 +78,23 @@ void Daemon::daemonize()
 {
     pid_t pid = fork();
     if (pid != 0)
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     if (setsid() < 0)
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
 
     std::signal(SIGHUP, signalHandler);
     std::signal(SIGTERM, signalHandler);
 
     pid = fork();
     if (pid != 0)
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     umask(0);
     if (chdir("/") != 0)
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
 
-    for (long x = sysconf(_SC_OPEN_MAX); x >= 0; --x)
+     for (long x = sysconf(_SC_OPEN_MAX); x >= 0; --x)
         close(x);
-    openlog(syslogProcName.c_str(), LOG_PID, LOG_DAEMON);
+    logger.openSyslog();
 
     std::ofstream f(pidFilePath, std::ios_base::trunc);
     f << getpid();
