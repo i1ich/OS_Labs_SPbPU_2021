@@ -9,7 +9,9 @@ int main(int argc, char** argv)
     }
     Daemon daemon = Daemon::getInstance(argv[1]);
     if(daemon.init()){
+        syslog(LOG_INFO, "INFO: daemon initialize successfully");
         daemon.run();
     }
+    syslog(LOG_INFO, "INFO: program end");
     return 0;
 }

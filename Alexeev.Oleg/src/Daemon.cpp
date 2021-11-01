@@ -26,37 +26,32 @@ bool Daemon::init() {
     runDaemon = true;
     readAgain = false;
     pidPath = Daemon::getFullWorkingDirectory(PID_FILE);
+    syslog(LOG_INFO, "%s", Daemon::getFullWorkingDirectory(PID_FILE).c_str());
     _parser.setConfig(configPath);
 
     if (!_parser.parse()) {
         stopDaemon();
         syslog(LOG_ERR, "ERROR: Can't parse config");
+        std::cout << "ERROR: Can't parse config" << std::endl;
         return false;
     }
 
     pid_t pid = fork();
-    switch (pid) {
-        case -1:
-            stopDaemon();
-            syslog(LOG_ERR, "ERROR: Can't create child");
-            return false;
-        case 0:
-            syslog(LOG_INFO, "INFO: Create child process");
-            break;
-        default:
-            kill(pid, SIGTERM);
-            return false;
+    if(!checkPid(pid)){
+        return false;
     }
     umask(0);
     if (setsid() < 0) {
         stopDaemon();
         syslog(LOG_ERR, "ERROR: Can't create session");
+        std::cout << "ERROR: Can't create session" << std::endl;
         return false;
     }
 
     if (chdir("/") == -1) {
         stopDaemon();
         syslog(LOG_ERR, "ERROR: Can't change working directory");
+        std::cout << "ERROR: Can't change working directory" << std::endl;
         return false;
     }
 
@@ -69,12 +64,33 @@ bool Daemon::init() {
 
     if (!setPidFile()) {
         syslog(LOG_ERR, "ERROR: In create pid file");
+        std::cout << "ERROR: In create pid file" << std::endl;
     }
 
     return true;
 }
 
+bool Daemon::checkPid(pid_t pid) {
+    switch (pid) {
+        case -1:
+            stopDaemon();
+            syslog(LOG_ERR, "ERROR: Can't create child");
+            std::cout << "ERROR: Can't create child" << std::endl;
+            return false;
+        case 0:
+            syslog(LOG_INFO, "INFO: Create child process");
+            return true;
+        default:
+            //kill(pid, SIGTERM);
+            syslog(LOG_INFO, "INFO: Kill parent process");
+            return false;
+    }
+}
+
 std::string Daemon::getFullWorkingDirectory(const std::string &path) {
+    if (path.empty() || path[0] == '/') {
+        return path;
+    }
     return std::filesystem::current_path().string() + "/" + path;
 }
 
@@ -98,6 +114,7 @@ bool Daemon::setPidFile() {
         if (!pid) {
             stopDaemon();
             syslog(LOG_ERR, "ERROR: Can't get pid\n");
+            std::cout << "ERROR: Can't get pid" << std::endl;
             return false;
         }
         out << getpid() << std::endl;
@@ -106,6 +123,7 @@ bool Daemon::setPidFile() {
     }
     stopDaemon();
     syslog(LOG_ERR, "ERROR: Can't create pid file\n");
+    std::cout << "ERROR: Can't create pid file" << std::endl;
     return false;
 }
 
@@ -131,6 +149,7 @@ void Daemon::work(std::pair<std::string, int> record) {
     std::filesystem::path startPath(path);
     if (startPath.empty()) {
         syslog(LOG_ERR, "ERROR: Can't find path:{%s}", path.c_str());
+        std::cout << "ERROR: Can't find path:" << std::endl;
     }
     recursiveDelete(startPath, depth - 1);
 }

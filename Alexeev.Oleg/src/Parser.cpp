@@ -27,12 +27,14 @@ bool Parser::parse() {
     if(getline(file, readStr)){
         if(readStr.empty()){
             syslog(LOG_ERR, "ERROR: Empty log file\n");
+            std::cout << "ERROR: Empty log file" << std::endl;
             return false;
         }
     }
 
     if(readStr.find(TIME) == std::string::npos){
         syslog(LOG_ERR, "ERROR: Invalid config\n");
+        std::cout << "ERROR: Invalid config" << std::endl;
         return false;
     }
 
@@ -44,12 +46,14 @@ bool Parser::parse() {
         }
         if(readStr.find(SPACE) == std::string::npos){
             syslog(LOG_ERR, "ERROR: exception in init: \n");
+            std::cout << "ERROR: exception in init:" << std::endl;
             return false;
         }
         std::string path = Daemon::getFullWorkingDirectory(readStr.substr(0, readStr.find(SPACE)));
         int depth = atoi(readStr.substr(readStr.find(SPACE) + 1).c_str());
         if(depth < 0){
             syslog(LOG_ERR, "ERROR: Invalid data: \n");
+            std::cout << "ERROR: Invalid data:" << std::endl;
             return false;
         }
         data.emplace_back(path, depth);
