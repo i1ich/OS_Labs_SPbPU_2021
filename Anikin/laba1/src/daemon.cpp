@@ -12,7 +12,7 @@
 
 #define PID_PATH "../etc/daemon.pid"
 
-app::daemon* app::daemon::_inst = nullptr;
+std::shared_ptr<app::daemon> app::daemon::_inst = nullptr;
 
 void app::daemon::sig_handler(int signal){
     switch (signal)
@@ -43,12 +43,13 @@ app::daemon::daemon(config const& cfg):
 
 app::daemon::~daemon()
 {
+    syslog(LOG_INFO, "dm daemon terminate");
     closelog();
 }
 
 app::daemon* app::daemon::inst()
 {
-    return _inst;
+    return _inst.get();
 }
 
 bool app::daemon::init(std::string const& cfg_path)
@@ -63,17 +64,17 @@ bool app::daemon::init(std::string const& cfg_path)
         cfg.read();
 
         if (_inst == nullptr)
-            _inst = new daemon(cfg);
-
-        daemon::inst()->_worker->read_cfg(cfg);
+            _inst.reset(new daemon(cfg));
 
         pid_t pid = _inst->leave_terminal();
+        
         switch(pid){
         case -1:
             syslog(LOG_ERR, "bad fork");
             return false;
         case 0:
         {
+            daemon::inst()->_worker->read_cfg(cfg);
             daemon::inst()->write_pid();
             struct sigaction int_handler;
             sigemptyset(&int_handler.sa_mask);

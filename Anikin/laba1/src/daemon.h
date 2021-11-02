@@ -31,7 +31,7 @@ namespace app{
 
         pid_t leave_terminal();
 
-        static daemon* _inst;
+        static std::shared_ptr<daemon> _inst;
 
         config _config;
 

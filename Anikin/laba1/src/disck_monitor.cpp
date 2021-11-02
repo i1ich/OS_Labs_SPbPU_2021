@@ -6,12 +6,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include "disck_monitor.h"
-#include <errno.h>
 
 
-#define BUFFER_SIZE (sizeof(struct inotify_event) + NAME_MAX + 1)
-#define CFG_KEY "dm_folders"
-#define DM_LOG_PATH "../log/disk_monitor.log"
+char const * const CFG_KEY = "dm_folders";
+char const * const DM_LOG_PATH = "../log/disk_monitor.log";
+int const BUFFER_SIZE =  sizeof(struct inotify_event) + NAME_MAX + 1;
 
 typedef struct inotify_event dm_event;
 
@@ -100,8 +99,10 @@ void disk_monitor::run()
     if (!_logfile.is_open())
         throw std::runtime_error("disk monitor's log file not open");
 
-    std::unique_ptr<dm_event> event_ptr(reinterpret_cast<dm_event*>(new char[BUFFER_SIZE]));
-    if (_wtable.get_changes(reinterpret_cast<char*>(event_ptr.get()), BUFFER_SIZE) < 0)
+    char buffer[BUFFER_SIZE];
+    auto event_ptr = reinterpret_cast<dm_event*>(buffer);
+
+    if (_wtable.get_changes(buffer, BUFFER_SIZE) < 0)
         return;
     if (event_ptr->len > 0 && (event_ptr->mask & IN_MODIFY)){
         _logfile << "[Modified] " << getpid() << " " << _wtable[event_ptr->wd] << "/" << event_ptr->name << std::endl;
@@ -115,7 +116,7 @@ void disk_monitor::read_cfg(config const& cfg)
 
     _wtable.remove_all();
 
-    std::string folders = cfg[ "dm_folders" ];
+    std::string folders = cfg[CFG_KEY];
     if (folders == "")
         throw std::runtime_error("invalid disk monitor config");
 

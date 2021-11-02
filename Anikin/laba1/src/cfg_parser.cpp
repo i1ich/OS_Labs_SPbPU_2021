@@ -49,7 +49,7 @@ std::string config::operator[](std::string const& key) const
     auto value_it = _data.find(key);
     if (value_it == _data.end())
         return std::string("");
-    return (*value_it).second;
+    return value_it->second;
 }
 
 std::string config::operator[](char const* key) const
