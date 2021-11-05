@@ -1,9 +1,14 @@
-#! /bin/bash
+#!/bin/sh
 
-pidFile="/var/run/IgnatievDeamon.pid"
+PID_LOCATION="/var/run/daemon.pid"
 
-[[ -f pidFile ]] || sudo touch "$pidFile"
+[[ -f $pidFilePath ]] || sudo touch "$PID_LOCATION"
 
-sudo chmod 0666 "$pidFile"
+sudo chmod 666 "$PID_LOCATION"
 
+cmake -Wall -Werror .
 make
+rm CMakeCache.txt Makefile cmake_install.cmake
+FILE=lab1.cbp
+[[ -f "$FILE" ]] && rm "$FILE"
+rm -r CMakeFiles/

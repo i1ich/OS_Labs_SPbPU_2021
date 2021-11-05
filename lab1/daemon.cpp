@@ -3,18 +3,15 @@
 #include <csignal>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <syslog.h>
 #include <fstream>
 #include <map>
 #include <dirent.h>
-#include <cstring>
 #include <iomanip>
 #include "parser.h"
 
-
 string daemon::configFile = "";
-string daemon::pidFileName = "/var/run/IgnatievDeamon.pid";
+string daemon::pidFileName = "/var/run/daemon.pid";
 string daemon::dirHome;
 string daemon::dir1 = "dir1";
 string daemon::dir2 = "dir2";
