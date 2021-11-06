@@ -10,6 +10,11 @@
 #include <iomanip>
 #include "parser.h"
 
+class daemon daemon::instance;
+class daemon &daemon::getInstance()
+{
+    return instance;
+}
 string daemon::configFile = "";
 string daemon::pidFileName = "/var/run/daemon.pid";
 string daemon::dirHome;

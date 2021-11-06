@@ -10,10 +10,11 @@ class daemon
 {
 public:
     static bool startDaemonization(const string& configFileParse);
-private:    
+private:
     daemon() {}
     daemon(daemon const&) = delete;
     daemon & operator = (daemon const&) = delete;
+    static daemon & getInstance();
     static void clearDaemon();
     static void terminateDaemon();
     static string getFullPath(const string& path);
