@@ -5,6 +5,5 @@ public:
     std::string directory;
     std::string ignFilename;
 
-    DirectoryWithIgnFile(std::string directory_, std::string ignFilename_):
-            directory(std::move(directory_)), ignFilename(std::move(ignFilename_)) {}
+    DirectoryWithIgnFile(const std::string& directory_, const std::string& ignFilename_): directory(directory_), ignFilename(ignFilename_) {}
 };
