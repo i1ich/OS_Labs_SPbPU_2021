@@ -63,6 +63,5 @@ bool Parser::getPath(std::pair<std::string, int> &path) {
     }
     path = data[0];
     data.erase(data.begin());
-    std::cout << path.first << std::endl;
     return true;
 }

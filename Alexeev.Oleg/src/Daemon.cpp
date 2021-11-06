@@ -7,6 +7,7 @@
 #include <utility>
 #include <iostream>
 #include <fstream>
+#include <experimental/filesystem>
 
 const char SPACE = ' ';
 const int SLEEPTIME = 30;
@@ -25,6 +26,7 @@ bool Daemon::init() {
     runDaemon = true;
     readAgain = false;
     pidPath = Daemon::getFullWorkingDirectory(PID_FILE);
+    syslog(LOG_INFO, "%s", Daemon::getFullWorkingDirectory(PID_FILE).c_str());
     _parser.setConfig(configPath);
 
     if (!_parser.parse()) {
@@ -34,17 +36,8 @@ bool Daemon::init() {
     }
 
     pid_t pid = fork();
-    switch (pid) {
-        case -1:
-            stopDaemon();
-            syslog(LOG_ERR, "ERROR: Can't create child");
-            return false;
-        case 0:
-            syslog(LOG_INFO, "INFO: Create child process");
-            break;
-        default:
-            kill(pid, SIGTERM);
-            return false;
+    if(!checkPid(pid)){
+        return false;
     }
     umask(0);
     if (setsid() < 0) {
@@ -73,7 +66,26 @@ bool Daemon::init() {
     return true;
 }
 
+bool Daemon::checkPid(pid_t pid) {
+    switch (pid) {
+        case -1:
+            stopDaemon();
+            syslog(LOG_ERR, "ERROR: Can't create child");
+            return false;
+        case 0:
+            syslog(LOG_INFO, "INFO: Create child process");
+            return true;
+        default:
+            //kill(pid, SIGTERM);
+            syslog(LOG_INFO, "INFO: Kill parent process");
+            return false;
+    }
+}
+
 std::string Daemon::getFullWorkingDirectory(const std::string &path) {
+    if (path.empty() || path[0] == '/') {
+        return path;
+    }
     return std::filesystem::current_path().string() + "/" + path;
 }
 
@@ -112,9 +124,7 @@ void Daemon::run() {
     std::pair<std::string, int> record;
     while (runDaemon && _parser.getPath(record)) {
         work(record);
-        std::cout << "Before sleep" << std::endl;
         sleep(SLEEPTIME);
-        std::cout << "After sleep" << std::endl;
         if (readAgain) {
             _parser.parse();
             readAgain = false;

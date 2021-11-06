@@ -15,7 +15,7 @@
 #include <csignal>
 #include "Parser.h"
 
-const char *const PID_FILE = "lab1.pid";
+const char *const PID_FILE = "/var/run/lab1.pid";
 
 class Daemon {
 public:
@@ -36,6 +36,7 @@ private:
     void stopDaemon();
     static void signal_handler(int signal_id);
     bool setPidFile();
+    bool checkPid(pid_t pid);
     static bool isDirectory(const std::string& path);
 
     Parser _parser;
