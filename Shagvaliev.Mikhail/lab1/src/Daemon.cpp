@@ -192,7 +192,7 @@ void Daemon::processSignal(int signal) {
     switch (signal) {
         case SIGHUP:
             logger.logInfo("Updating config file");
-            if (daemon.loadConfig()) {
+            if (not daemon.loadConfig()) {
                 daemon.stop();
             }
             break;

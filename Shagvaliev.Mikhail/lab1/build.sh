@@ -6,7 +6,7 @@ if ! [[ -f pidFilePath ]]; then
   sudo touch "$pidFilePath"
 fi
 
-sudo chmod 600 "$pidFilePath"
+sudo chmod 666 "$pidFilePath"
 
 cmake .
 make
