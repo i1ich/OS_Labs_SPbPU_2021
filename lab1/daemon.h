@@ -11,6 +11,8 @@ class daemon
 public:
     static bool startDaemonization(const string& configFileParse);
 private:
+    Daemon(Daemon const&) = delete;
+    Daemon & operator=(Daemon const&) = delete;
     static void clearDaemon();
     static void terminateDaemon();
     static string getFullPath(const string& path);
