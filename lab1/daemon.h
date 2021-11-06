@@ -10,7 +10,8 @@ class daemon
 {
 public:
     static bool startDaemonization(const string& configFileParse);
-private:
+private:    
+    daemon() {}
     daemon(daemon const&) = delete;
     daemon & operator = (daemon const&) = delete;
     static void clearDaemon();
@@ -26,7 +27,7 @@ private:
     static void dir1ToDir2();
     static void dir2ToDir1();
 
-
+    static daemon instance;
     static string configFile;
     static string pidFileName;
     static string dirHome;
