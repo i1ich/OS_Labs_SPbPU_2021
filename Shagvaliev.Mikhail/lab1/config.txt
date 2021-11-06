@@ -1,3 +1,0 @@
-time 10
-testdata/dir_with_ignfile/ .ignfile
-testdata/dir_without_ignfile/ .ignfile
