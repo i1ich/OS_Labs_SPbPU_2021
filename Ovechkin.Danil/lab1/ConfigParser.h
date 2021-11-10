@@ -28,7 +28,7 @@ private:
     static ConfigParser instance;
 
     std::map<ConfigParams, std::string> params;
-    std::map<std::string , ConfigParams> tokens =
+    const std::map<std::string , ConfigParams> tokens =
             {{"TIME", ConfigParams::TIME},
              {"DIR1", ConfigParams::DIR1}};
 };

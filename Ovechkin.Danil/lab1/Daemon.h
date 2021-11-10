@@ -36,7 +36,7 @@ private:
 
     std::string pidFilePath;
 
-    Daemon() { pidFilePath = "/var/run/lab1.pid"; };
+    Daemon() {};
 
     Daemon(Daemon const& daemon) = delete;
 

@@ -12,6 +12,7 @@ void Daemon::init(std::string const&configFileName) {
     openlog("DAEMON_6", LOG_PID | LOG_NDELAY, LOG_USER);
     syslog(LOG_INFO, "Daemon initialization is starting");
 
+    pidFilePath = "/var/run/lab1.pid";
     isWorking = true;
 
     char buf[FILENAME_MAX];
@@ -28,6 +29,7 @@ void Daemon::init(std::string const&configFileName) {
     fullConfigPath = convertToPath(configFileName);
 
     if (!setConfigParams()) {
+        syslog(LOG_ERR, "Failed to load config");
         stop();
         throw std::runtime_error("Problems with reading config");
     }
@@ -41,6 +43,12 @@ void Daemon::init(std::string const&configFileName) {
         throw std::runtime_error("Fork failed");
     } else if (pid != 0) {
         syslog(LOG_INFO, "Now in the parent process");
+    }
+
+    if (setsid() == -1) {
+        syslog(LOG_ERR, "ERROR: Problems in setsid: %d", errno);
+        stop();
+        return;
     }
 
     syslog(LOG_INFO, "First fork success");
@@ -82,13 +90,22 @@ void Daemon::init(std::string const&configFileName) {
         throw std::runtime_error("Problems with Pid");
     }
 
+    if (!setConfigParams()) {
+        syslog(LOG_ERR, "Failed to load config");
+        stop();
+        throw std::runtime_error("Problems with reading config");
+    }
 }
 
-std::string Daemon::convertToPath(const std::string &configFileName) {
+std::string Daemon::convertToPath(const std::string &currentPath) {
 
-    std::string path = homePath + "/" + configFileName;
+    if (currentPath.empty() || currentPath[0] == '/') {
+        return currentPath;
+    }
 
-    char* realPath = realpath(path.c_str(), nullptr);
+    std::string fullPath = homePath + "/" + currentPath;
+
+    char* realPath = realpath(fullPath.c_str(), nullptr);
 
     if (!realPath) {
         syslog(LOG_ERR, "Problems with path");
@@ -96,7 +113,9 @@ std::string Daemon::convertToPath(const std::string &configFileName) {
         return std::string();
     }
 
-    return std::string(realPath);
+    std::string finalPath(realPath);
+    free(realPath);
+    return finalPath;
 }
 
 void Daemon::signalHandler(int signal) {
@@ -105,7 +124,9 @@ void Daemon::signalHandler(int signal) {
     switch (signal) {
         case SIGHUP:
             if (!daemon.setConfigParams()) {
+                syslog(LOG_ERR, "Problems with config");
                 daemon.stop();
+                break;
             }
             syslog(LOG_INFO, "Config is updated");
             break;
@@ -120,7 +141,7 @@ void Daemon::signalHandler(int signal) {
 
 bool Daemon::handlePidFile() {
     syslog(LOG_INFO, "Start handling PID file");
-
+    pidFilePath = convertToPath(pidFilePath);
     std::ifstream pidFile(pidFilePath);
 
     if (!pidFile.is_open()) {
@@ -131,11 +152,11 @@ bool Daemon::handlePidFile() {
         pidFile >> oldPid;
         pidFile.close();
 
-        struct stat st;
         std::string oldPath = "/proc/" + std::to_string(oldPid);
 
-        if (stat(oldPath.c_str(), &st) == 0)
+        if (std::filesystem::exists(oldPath)) {
             kill(oldPid, SIGTERM);
+        }
     }
 
     return setPidFile();
@@ -195,7 +216,8 @@ bool Daemon::doTask() {
     std::string fullpath = homePath + "/" + dir1;
 
     for (auto& path: std::filesystem::directory_iterator(fullpath)) {
-        if (path.is_directory()){
+        if (std::filesystem::is_directory(path)){
+
             std::filesystem::remove_all(path);
             syslog(LOG_INFO, "Directory was deleted");
         }

@@ -15,8 +15,9 @@ int ConfigParser::parse(const std::string& filename) {
     if (!config.is_open()){
         throw std::runtime_error("File cannot be opened");
     }
+    params.clear();
 
-    for (int i = 0; i < (int)tokens.size(); i++) {
+    for (size_t i = 0; i < tokens.size(); i++) {
         std::string key;
         std::string value;
 
