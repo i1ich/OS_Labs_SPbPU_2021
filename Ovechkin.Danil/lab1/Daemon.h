@@ -16,7 +16,7 @@ class Daemon
 public:
     static Daemon& getInstance();
 
-    void init(std::string const&configFileName);
+    bool init(std::string const&configFileName);
 
     void run();
 

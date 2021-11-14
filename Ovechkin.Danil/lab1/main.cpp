@@ -11,8 +11,8 @@ int main(int argc, char** argv) {
     Daemon& daemon = Daemon::getInstance();
 
     try {
-        daemon.init(argv[1]);
-        daemon.run();
+        if (daemon.init(argv[1]))
+            daemon.run();
     }
     catch (std::runtime_error &error) {
         std::cerr << "Fatal error in deamon " << error.what();

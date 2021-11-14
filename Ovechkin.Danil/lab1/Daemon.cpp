@@ -7,7 +7,7 @@ Daemon& Daemon::getInstance() {
     return Daemon::instance;
 }
 
-void Daemon::init(std::string const&configFileName) {
+bool Daemon::init(std::string const&configFileName) {
 
     openlog("DAEMON_6", LOG_PID | LOG_NDELAY, LOG_USER);
     syslog(LOG_INFO, "Daemon initialization is starting");
@@ -42,13 +42,13 @@ void Daemon::init(std::string const&configFileName) {
 
         throw std::runtime_error("Fork failed");
     } else if (pid != 0) {
-        syslog(LOG_INFO, "Now in the parent process");
+        return false;
     }
 
     if (setsid() == -1) {
         syslog(LOG_ERR, "ERROR: Problems in setsid: %d", errno);
         stop();
-        return;
+        return false;
     }
 
     syslog(LOG_INFO, "First fork success");
@@ -60,7 +60,7 @@ void Daemon::init(std::string const&configFileName) {
         stop();
         throw std::runtime_error("Fork failed");
     } else if (pid != 0) {
-        syslog(LOG_INFO, "Now in the parent process");
+        return false;
     }
 
     syslog(LOG_INFO, "Second fork success");
@@ -95,6 +95,8 @@ void Daemon::init(std::string const&configFileName) {
         stop();
         throw std::runtime_error("Problems with reading config");
     }
+
+    return true;
 }
 
 std::string Daemon::convertToPath(const std::string &currentPath) {
