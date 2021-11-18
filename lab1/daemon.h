@@ -1,10 +1,8 @@
 #ifndef __DAEMON_H_
 #define __DAEMON_H_
 
-
 #include <string>
 #include <vector>
-#include <chrono>
 
 enum EVENT_PERIOD {
     REPEAT_ONCE,
@@ -23,7 +21,7 @@ struct event {
 
 class daemon {
 public:
-    static bool runDaemon(const std::string& configFilePath = "");
+    static bool RunDaemon(const std::string& configFilePath);
     daemon(const daemon& d) = delete;
     daemon& operator=(const daemon& d) = delete;
 private:
@@ -40,7 +38,7 @@ private:
     static void SignalHandler(int signal);
     void Execute(void);
 
-    bool LoadConfig(const std::string& configFilePath = "");
+    bool LoadConfig(const std::string& configFilePath);
     static bool SetPidFile(const std::string& filePath);
     bool KillOldByPid(void);
 
@@ -49,6 +47,5 @@ private:
 
     daemon(void) = default;
 };
-
 
 #endif //!__DAEMON_H_

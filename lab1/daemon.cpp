@@ -14,73 +14,90 @@
 daemon* daemon::daemonInstance;
 bool daemon::isRunned;
 
-bool daemon::runDaemon(const std::string& configFilePath)
+bool daemon::RunDaemon(const std::string& configFilePath)
 {
     pid_t pid, sid;
-    if (daemon && isRunned)
+
+    if (daemonInstance && isRunned)
         return true;
+
     openlog("lab1", LOG_NOWAIT | LOG_PID, LOG_USER);
     syslog(LOG_INFO, "Initializing daemon");
-    if (configFilePath.empty()) {
-        syslog(LOG_ERR, "Config file path was not determined");
+
+    if (configFilePath.empty())
+    {
+        syslog(LOG_ERR, "Config file path is empty");
         return false;
     }
+
     pid = fork();
-    if (pid == -1) {
+
+    if (pid == -1)
+    {
         isRunned = false;
-        syslog(LOG_ERR, "Start Daemon failed (%s)", strerror(errno));
+        syslog(LOG_ERR, "Error while starting daemon: %s", strerror(errno));
         return false;
     }
     else if (pid)
         return true;
+
     isRunned = true;
 
     umask(0);
-    syslog(LOG_INFO, "First fork was ended successfully");
     sid = setsid();
-    if (sid < 0) {
+    if (sid < 0)
+    {
         isRunned = false;
-        syslog(LOG_ERR, "Could not generate session ID for child process");
+        syslog(LOG_ERR, "Cant generate sID");
         return false;
     }
+
     pid = fork();
-    if (pid == -1) {
+
+    if (pid == -1)
+    {
         isRunned = false;
-        syslog(LOG_ERR, "Start Daemon failed (%s)", strerror(errno));
+        syslog(LOG_ERR, "Error while starting daemon: %s", strerror(errno));
         return false;
     }
+
     if (pid)
         return true;
-    syslog(LOG_INFO, "Second fork was ended successfully");
-    if (!daemonInst) {
-        daemonInst = new daemon();
-    }
-    if (!daemonInst) {
+
+    if (!daemonInstance)
+        daemonInstance = new daemon();
+
+    if (!daemonInstance)
+    {
         isRunned = false;
         syslog(LOG_ERR, "Memory allocation error");
         return false;
     }
-    if (!daemonInst->KillOldByPid()) {
+    if (!daemonInstance->KillOldByPid())
+    {
         isRunned = false;
         return false;
     }
-    syslog(LOG_INFO, "Second fork was ended successfully");
-    if (!daemonInst->LoadConfig(configFilePath)) {
+    if (!daemonInstance->LoadConfig(configFilePath))
+    {
         isRunned = false;
         closelog();
         return false;
     }
-    try {
-        daemonInst->initializePath = fs::absolute(".").string() + '/';
+    try
+    {
+        daemonInstance->initializePath = std::filesystem::absolute(".").string() + '/';
     }
-    catch (const fs::filesystem_error& error) {
-        syslog(LOG_ERR, "During getting absolute path to running dir an error occurred %s", error.what());
+    catch (const std::filesystem::filesystem_error& error)
+    {
+        syslog(LOG_ERR, "Error while build absolute path: %s", error.what());
         isRunned = false;
         kill(getpid(), SIGTERM);
     }
-    if ((chdir("/")) < 0) {
+    if ((chdir("/")) < 0)
+    {
         isRunned = false;
-        syslog(LOG_ERR, "Could not change working directory to /");
+        syslog(LOG_ERR, "Cant change work dir to /");
         return false;
     }
     close(STDIN_FILENO);
@@ -90,7 +107,7 @@ bool daemon::runDaemon(const std::string& configFilePath)
     signal(SIGHUP, SignalHandler);
     signal(SIGTERM, SignalHandler);
 
-    daemonInst->Execute();
+    daemonInstance->Execute();
 
     syslog(LOG_INFO, "Execution ended");
     closelog();
@@ -154,55 +171,57 @@ bool daemon::LoadConfig(const std::string& configFilePath)
         events.push_back(cur);
     }
     file.close();
-    syslog(LOG_INFO, "Read %i events from config", daemonInstance->events.size());
     return true;
 }
 
-void daemon::SignalHandler(int signal) {
-    switch (signal) {
+void daemon::SignalHandler(int signal)
+{
+    switch (signal)
+    {
     case SIGHUP:
-        if (!daemon->LoadConfig())
-            syslog(LOG_ERR, "Config file was not updated");
-        else
-            syslog(LOG_INFO, "Config file was updated");
+        if (!daemonInstance->LoadConfig())
+            syslog(LOG_ERR, "Cant load config");
         break;
     case SIGTERM:
         isRunned = false;
         syslog(LOG_INFO, "Daemon was stopped");
         closelog();
         exit(0);
-    default:
-        syslog(LOG_INFO, "Signal %i was not handled", signal);
     }
 }
 
-bool daemon::SetPidFile(const std::string& filePath) {
-    std::ofstream pidStream(filePath);
-    if (!pidStream.is_open()) {
-        syslog(LOG_ERR, "Pid file %s can not be opened", daemonInstance->pidFilePath.c_str());
+bool daemon::SetPidFile(const std::string& filePath)
+{
+    std::ofstream pidFile(filePath);
+    if (!pidFile.is_open())
+    {
+        syslog(LOG_ERR, "Cant open pid file");
         return false;
     }
     pid_t pid = getpid();
-    pidStream << pid;
-    pidStream.close();
-    syslog(LOG_NOTICE, "New pid %d was wrote to .pid file", pid);
+    pidFile << pid;
+    pidFile.close();
     return true;
 }
 
-bool daemon::KillOldByPid() {
+bool daemon::KillOldByPid()
+{
     std::ifstream pidFile(pidFilePath);
 
-    if (!pidFile.is_open()) {
-        syslog(LOG_ERR, "Pid file %s can not be opened", pidFilePath.c_str());
+    if (!pidFile.is_open())
+    {
+        syslog(LOG_ERR, "Cant open pid file");
         return false;
     }
-    if (!pidFile.eof()) {
+    if (!pidFile.eof())
+    {
         pid_t oldPid;
         pidFile >> oldPid;
-        auto proc = "/proc/" + std::to_string(oldPid);
-        if (std::filesystem::exists(proc)) {
+        std::string path = "/proc/" + std::to_string(oldPid);
+        if (std::filesystem::exists(path))
+        {
             kill(oldPid, SIGTERM);
-            syslog(LOG_NOTICE, "Daemon with pid %d was killed", oldPid);
+            syslog(LOG_NOTICE, "Kill old pid %i", oldPid);
         }
     }
     pidFile.close();
@@ -212,7 +231,8 @@ bool daemon::KillOldByPid() {
 void daemon::Execute()
 {
     syslog(LOG_INFO, "Daemon execution");
-    while (1) {
+    while (1) 
+    {
         Idle();
         sleep(timeStamp);
     }
@@ -220,19 +240,22 @@ void daemon::Execute()
 
 void daemon::Idle() 
 {
-    for (auto line : configLines) {
-        cleanDir(initializePath + line[1]);
-        copyFilesWithExt(initializePath + line[0], initializePath + line[1], line[2]);
-    }
+    for (auto ev : events)
+        if (CheckEvent(ev))
+            Notify(ev.text);
 }
 
-void Notify(std::string text);
+void daemon::Notify(std::string text)
+{
+    std::string str = "xterm -e sh -c 'ls -l; echo " + text;
+    system(str.c_str());
+}
 
 bool daemon::CheckEvent(event ev)
 {
     auto now = std::chrono::system_clock::now();
-    std::time_t nowTime_t = std::chrono::system_clock::to_time_t(now);
-    std::tm *nowTime = localtime(&nowTime_t);
+    std::time_t fuckedNow = std::chrono::system_clock::to_time_t(now);
+    std::tm *nowTime = localtime(&fuckedNow);
 
     if (std::chrono::system_clock::from_time_t(std::mktime(&ev.startTime)) > now)
         return false;
@@ -257,13 +280,13 @@ bool daemon::CheckEvent(event ev)
             return true;
         return false;
     case REPEAT_ONCE:
-        nowTime->tm_sec = ev.startTime.tm_sec; // for checking all without seconds
-        if (ev.startTime == *nowTime)
+        if (ev.startTime.tm_min == nowTime->tm_min &&
+            ev.startTime.tm_hour == nowTime->tm_hour &&
+            ev.startTime.tm_yday == nowTime->tm_yday &&
+            ev.startTime.tm_year == nowTime->tm_year)
             return true;
         return false;
-    default:
-        break;
     }
-
+    return false;
 }
 
