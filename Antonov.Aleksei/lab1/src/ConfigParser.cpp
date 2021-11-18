@@ -24,7 +24,7 @@ vector<string> ConfigParser::split(const std::string& src)
   return result;
 }
 
-ConfigParser::Params ConfigParser::read_line(ifstream& fs, RC* rc)
+ConfigParser::Params ConfigParser::read_line(ifstream& fs, RC* rc, const string& relativePath)
 {
   RC innerRC;
   RC* pRC = rc != nullptr ? rc : &innerRC;
@@ -37,6 +37,11 @@ ConfigParser::Params ConfigParser::read_line(ifstream& fs, RC* rc)
   string line;
 
   getline(fs, line);
+  if (line.empty())
+  {
+    *pRC = RC::EMPTY_STRING;
+    return {};
+  }
   auto tokens = split(line);
 
   if (tokens.size() != 4)
@@ -51,7 +56,7 @@ ConfigParser::Params ConfigParser::read_line(ifstream& fs, RC* rc)
   result.extension = tokens[2];
   result.subfolder = tokens[3];
 
-  if (!filesystem::is_directory(result.srcFolder) || !filesystem::is_directory(result.dstFolder))
+  if (!filesystem::is_directory(relativePath + result.srcFolder) || !filesystem::is_directory(relativePath + result.dstFolder))
   {
     *pRC = RC::FILE_DOES_NOT_EXIST;
     return {};

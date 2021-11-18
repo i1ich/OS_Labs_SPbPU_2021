@@ -28,7 +28,7 @@ public:
     std::string subfolder;
   };
 public:
-  static Params read_line(std::ifstream& fs, RC* rc = nullptr);
+  static Params read_line(std::ifstream& fs, RC* rc = nullptr, const std::string& relativePath = "");
 };
 
 

@@ -13,6 +13,7 @@ enum RC {
   FAILED_FORK         = 4,
   PARENT_PROCESS      = 5,
   FAILED_CHANGE_DIR   = 6,
+  EMPTY_STRING        = 7,
 };
 
 #endif //DAEMON_RC_H

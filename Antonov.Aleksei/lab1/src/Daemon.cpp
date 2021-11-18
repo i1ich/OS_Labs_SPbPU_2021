@@ -92,12 +92,12 @@ RC Daemon::loadConfig(const string &configFilePath)
   }
   RC rc;
   while (!configFile.eof()) {
-    auto lineParams = ConfigParser::read_line(configFile, &rc);
-    if (rc != RC::SUCCESS) {
+    auto lineParams = ConfigParser::read_line(configFile, &rc, m_absolutePath);
+    if (rc != RC::SUCCESS && rc != RC::EMPTY_STRING) {
       syslog(LOG_ERR, "Parsing config error %i", rc);
       return rc;
     }
-    m_configParams.push_front(lineParams);
+    if (rc != RC::EMPTY_STRING) m_configParams.push_front(lineParams);
   }
   return RC::SUCCESS;
 }
@@ -165,9 +165,9 @@ int Daemon::execute()
     {
       syslog(LOG_INFO, "Executed");
       for (const auto &paramSet: m_configParams) {
-        isValid = copyFilesFromDir(paramSet.srcFolder, paramSet.dstFolder, paramSet.extension, paramSet.subfolder);
+        isValid = cleanDir(paramSet.dstFolder);
         if(isValid)
-          isValid = cleanDir(paramSet.srcFolder);
+          isValid = copyFilesFromDir(paramSet.srcFolder, paramSet.dstFolder, paramSet.extension, paramSet.subfolder);
         else
           break;
       }

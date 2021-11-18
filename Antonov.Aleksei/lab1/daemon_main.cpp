@@ -16,5 +16,7 @@ int main(int argc, char ** argv)
   }
   auto daemon = Daemon::getInstance();
   daemon->init(argv[1]);
-  return daemon->execute();
+  auto rc = daemon->execute();
+  delete daemon;
+  return rc;
 }
