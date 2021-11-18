@@ -4,15 +4,16 @@
 #include <sys/stat.h>
 #include <fstream>
 #include <sstream>
-#include <filesystem>
+#include <experimental/filesystem>
 #include <bits/types/siginfo_t.h>
 #include <csignal>
 #include <wait.h>
+#include <iomanip>
 
 #include "daemon.h"
 
-daemon* daemon::daemonInstance;
 bool daemon::isRunned;
+class daemon * daemon::daemonInstance = nullptr;
 
 bool daemon::RunDaemon(const std::string& configFilePath)
 {
@@ -86,9 +87,9 @@ bool daemon::RunDaemon(const std::string& configFilePath)
     }
     try
     {
-        daemonInstance->initializePath = std::filesystem::absolute(".").string() + '/';
+        daemonInstance->initializePath = std::experimental::filesystem::absolute(".").string() + '/';
     }
-    catch (const std::filesystem::filesystem_error& error)
+    catch (const std::experimental::filesystem::filesystem_error& error)
     {
         syslog(LOG_ERR, "Error while build absolute path: %s", error.what());
         isRunned = false;
@@ -179,7 +180,7 @@ void daemon::SignalHandler(int signal)
     switch (signal)
     {
     case SIGHUP:
-        if (!daemonInstance->LoadConfig())
+        if (!daemonInstance->LoadConfig(""))
             syslog(LOG_ERR, "Cant load config");
         break;
     case SIGTERM:
@@ -218,7 +219,7 @@ bool daemon::KillOldByPid()
         pid_t oldPid;
         pidFile >> oldPid;
         std::string path = "/proc/" + std::to_string(oldPid);
-        if (std::filesystem::exists(path))
+        if (std::experimental::filesystem::exists(path))
         {
             kill(oldPid, SIGTERM);
             syslog(LOG_NOTICE, "Kill old pid %i", oldPid);
@@ -247,8 +248,15 @@ void daemon::Idle()
 
 void daemon::Notify(std::string text)
 {
-    std::string str = "xterm -e sh -c 'ls -l; echo " + text;
-    system(str.c_str());
+    std::string str_xterm = "xterm -home -e command" + text;
+    std::string str_kde = "konsole --noclose -e echo " + text;
+    std::string str_gnome = "gnome-terminal -e \"bash -c 'echo " + text + " sleep 3'\"" ;
+    
+    // one of them will probably work
+    // I checked KDE one
+    system(str_xterm.c_str());
+    system(str_kde.c_str());
+    system(str_gnome.c_str());
 }
 
 bool daemon::CheckEvent(event ev)

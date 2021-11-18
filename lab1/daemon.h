@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <ctime>
 
 enum EVENT_PERIOD {
     REPEAT_ONCE,
@@ -25,12 +26,12 @@ public:
     daemon(const daemon& d) = delete;
     daemon& operator=(const daemon& d) = delete;
 private:
-    static daemon* daemonInstance;
+    static daemon *daemonInstance;
     static bool isRunned;
     std::string pidFilePath = "/var/run/lab1.pid";
     std::string configFileName;
     std::string initializePath;
-    static const int timeStamp = 30;
+    static const int timeStamp = 60;
 
     std::vector<event> events;
 

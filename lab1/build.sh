@@ -6,8 +6,8 @@ sudo chmod 666 "$pidPath"
 
 mkdir build
 cd build
-cmake -S ../ -B ./
+cmake .. 
 make
-cp ./lab1_var16 ../lab1_var16
+cp ./lab1 ../lab1
 cd ../
 rm -r build/
