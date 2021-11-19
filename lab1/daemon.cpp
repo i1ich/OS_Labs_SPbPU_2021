@@ -186,6 +186,7 @@ void daemon::SignalHandler(int signal)
         break;
     case SIGTERM:
         isRunned = false;
+        delete daemonInstance;
         syslog(LOG_INFO, "Daemon was stopped");
         closelog();
         exit(0);
