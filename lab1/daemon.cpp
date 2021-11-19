@@ -180,6 +180,7 @@ void daemon::SignalHandler(int signal)
     switch (signal)
     {
     case SIGHUP:
+        daemonInstance->events.clear();
         if (!daemonInstance->LoadConfig(""))
             syslog(LOG_ERR, "Cant load config");
         break;
@@ -250,7 +251,7 @@ void daemon::Notify(std::string text)
 {
     std::string str_xterm = "xterm -home -e command" + text;
     std::string str_kde = "konsole --noclose -e echo " + text;
-    std::string str_gnome = "gnome-terminal -e \"bash -c 'echo " + text + " sleep 3'\"" ;
+    std::string str_gnome = "gnome-terminal -e \"bash -c 'echo " + text + " && sleep 3'\"" ;
     
     // one of them will probably work
     // I checked KDE one
