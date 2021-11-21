@@ -19,18 +19,20 @@ const char *const PID_FILE = "/var/run/lab1.pid";
 
 class Daemon {
 public:
-    bool init();
+    bool init(std::string conPath);
     void run();
-    static Daemon getInstance(std::string configPath);
+    static Daemon* getInstance();
     static std::string getFullWorkingDirectory(std::string const& path);
 
     ~Daemon() = default;
+
+    Daemon(const Daemon&) = delete;
+    Daemon& operator=(const Daemon&) = delete;
 
 private:
     Daemon(): _parser(){}
 
     static Daemon instance;
-    std::map<std::string, int> data;
     void work(std::pair<std::string, int> record);
     void recursiveDelete(const std::filesystem::path& path, int depth);
     void recursiveDeletePathFiles(const std::filesystem::path& path);

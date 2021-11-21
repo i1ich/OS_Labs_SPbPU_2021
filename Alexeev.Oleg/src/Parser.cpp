@@ -4,7 +4,6 @@
 
 #include <fstream>
 #include <sys/syslog.h>
-#include <iostream>
 #include "../includes/Parser.h"
 #include "../includes/Daemon.h"
 

@@ -16,6 +16,7 @@ public:
     bool parse();
     bool getPath(std::pair<std::string, int>& path);
     int getTime();
+    ~Parser() = default;
 private:
     std::vector<std::pair<std::string, int>> data;
     std::string configPath;
