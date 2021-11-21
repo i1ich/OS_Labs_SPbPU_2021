@@ -10,7 +10,6 @@
 #include <experimental/filesystem>
 
 const char SPACE = ' ';
-const int SLEEPTIME = 30;
 
 Daemon Daemon::instance;
 
@@ -25,7 +24,7 @@ bool Daemon::init() {
 
     runDaemon = true;
     readAgain = false;
-    pidPath = Daemon::getFullWorkingDirectory(PID_FILE);
+    pidPath = PID_FILE;
     syslog(LOG_INFO, "%s", Daemon::getFullWorkingDirectory(PID_FILE).c_str());
     _parser.setConfig(configPath);
 
@@ -103,20 +102,23 @@ void Daemon::signal_handler(int signal_id) {
 }
 
 bool Daemon::setPidFile() {
+    std::cout << pidPath << std::endl;
+    mkdir(pidPath.c_str(), DEFFILEMODE);
     std::ofstream out(pidPath);
-    if (!out.is_open()) {
+    if (out.is_open()) {
         auto pid = getpid();
         if (!pid) {
             stopDaemon();
             syslog(LOG_ERR, "ERROR: Can't get pid\n");
             return false;
         }
-        out << getpid() << std::endl;
+        syslog(LOG_INFO, "%i\n", pid);
+        out << pid << std::endl;
         out.close();
         return true;
     }
     stopDaemon();
-    syslog(LOG_ERR, "ERROR: Can't create pid file\n");
+    syslog(LOG_ERR, "ERROR: Can't create pid file: {%s}\n", pidPath.c_str());
     return false;
 }
 
@@ -124,7 +126,10 @@ void Daemon::run() {
     std::pair<std::string, int> record;
     while (runDaemon && _parser.getPath(record)) {
         work(record);
-        sleep(SLEEPTIME);
+        const clock_t begin_time = std::clock();
+        sleep(this->_parser.getTime());
+        syslog(LOG_INFO, "%i\n", this->_parser.getTime());
+        syslog(LOG_INFO, "%li\n", std::clock() - begin_time);
         if (readAgain) {
             _parser.parse();
             readAgain = false;
@@ -138,6 +143,7 @@ void Daemon::work(std::pair<std::string, int> record) {
     std::string path = record.first;
     int depth = record.second;
     std::filesystem::path startPath(path);
+    syslog(LOG_INFO, "to directory: %s\n", path.c_str());
     if (startPath.empty()) {
         syslog(LOG_ERR, "ERROR: Can't find path:{%s}", path.c_str());
     }
@@ -148,13 +154,37 @@ void Daemon::recursiveDelete(const std::filesystem::path &path, int depth) {
     if (depth == 0) {
         for (auto &p: std::filesystem::directory_iterator(path)) {
             if(Daemon::isDirectory(p.path().string())) {
+                recursiveDeletePathFiles(p.path());
+                syslog(LOG_INFO, "delete directory: %s\n", p.path().string().c_str());
                 std::filesystem::remove(p);
             }
         }
     } else {
         for (auto &p: std::filesystem::directory_iterator(path)) {
-            recursiveDelete(p.path(), depth - 1);
+            if(Daemon::isDirectory(p.path().string())) {
+                syslog(LOG_INFO, "to directory: %s\n", p.path().c_str());
+                recursiveDelete(p.path(), depth - 1);
+            }
+            else{
+                syslog(LOG_INFO, "delete file: %s\n", p.path().c_str());
+                std::filesystem::remove(p);
+            }
         }
+    }
+}
+
+void Daemon::recursiveDeletePathFiles(const std::filesystem::path& path){
+    for (auto &p: std::filesystem::directory_iterator(path)) {
+        if(Daemon::isDirectory(p.path().string())) {
+            if(Daemon::isDirectory(p.path().string())){
+                recursiveDeletePathFiles(p.path());
+            }
+            syslog(LOG_INFO, "delete directory: %s\n", p.path().string().c_str());
+        }
+        else{
+            syslog(LOG_INFO, "delete file: %s\n", p.path().string().c_str());
+        }
+        std::filesystem::remove(p);
     }
 }
 

@@ -33,6 +33,7 @@ private:
     std::map<std::string, int> data;
     void work(std::pair<std::string, int> record);
     void recursiveDelete(const std::filesystem::path& path, int depth);
+    void recursiveDeletePathFiles(const std::filesystem::path& path);
     void stopDaemon();
     static void signal_handler(int signal_id);
     bool setPidFile();
@@ -42,8 +43,8 @@ private:
     Parser _parser;
     std::string configPath;
     std::string pidPath;
-    bool runDaemon;
-    bool readAgain;
+    bool runDaemon{};
+    bool readAgain{};
 };
 
 
