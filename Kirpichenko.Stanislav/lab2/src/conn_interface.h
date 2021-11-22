@@ -14,5 +14,5 @@ class Conn {
     Conn() = default;
     virtual void write(const Weather& info) = 0;
     virtual Weather read() = 0;
-    ~Conn() = default;
+    virtual ~Conn() = default;
 };

@@ -19,9 +19,9 @@ int main() {
     ss >> std::get_time(&time, Weather::dateFormat);
     w.date = time;
     w.temp = 1488;
-    CONN_CLASS cm;
-    cm.write(w);
-    Weather ww = cm.read();
+    auto cm = Singleton<CONN_CLASS>::getInstance();
+    cm->write(w);
+    Weather ww = cm->read();
     std::cout << std::put_time(&ww.date, Weather::dateFormat) << " temp: " << ww.temp << std::endl;
     return 0;
 }
