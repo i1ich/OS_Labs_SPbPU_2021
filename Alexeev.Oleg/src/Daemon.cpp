@@ -137,7 +137,6 @@ void Daemon::run() {
     std::pair<std::string, int> record;
     while (runDaemon) {
         if(_parser.getPath(record) && runDaemon) {
-            syslog(LOG_INFO, "INFO: delete in path: %s", record.first.c_str());
             work(record);
         }
         sleep(this->_parser.getTime());
