@@ -16,7 +16,7 @@ Daemon* Daemon::getInstance() {
     return &instance;
 }
 
-bool Daemon::init(std::string conPath) {
+bool Daemon::init(const std::string& conPath) {
     openlog("MY_DAEMON", LOG_NDELAY | LOG_PID, LOG_USER);
     syslog(LOG_INFO, "INFO: Start initializing daemon");
 
@@ -25,6 +25,7 @@ bool Daemon::init(std::string conPath) {
     runDaemon = true;
     readAgain = false;
     pidPath = PID_FILE;
+    startWorkingDirectory = std::filesystem::current_path().string() + "/";
     _parser.setConfig(configPath);
 
     if (!_parser.parse()) {
@@ -88,6 +89,10 @@ bool Daemon::checkPid(pid_t pid) {
     }
 }
 
+std::string Daemon::getStartWorkingDirectory() {
+    return startWorkingDirectory;
+}
+
 std::string Daemon::getFullWorkingDirectory(const std::string &path) {
     if (path.empty() || path[0] == '/') {
         return path;
@@ -132,12 +137,10 @@ void Daemon::run() {
     std::pair<std::string, int> record;
     while (runDaemon) {
         if(_parser.getPath(record) && runDaemon) {
+            syslog(LOG_INFO, "INFO: delete in path: %s", record.first.c_str());
             work(record);
         }
         sleep(this->_parser.getTime());
-        syslog(LOG_INFO, "INFO: %i\n", runDaemon);
-        syslog(LOG_INFO, "INFO: %i\n", instance.runDaemon);
-        syslog(LOG_INFO, "INFO: Daemon end work\n");
         if (instance.readAgain) {
             _parser.parse();
             readAgain = false;
@@ -147,7 +150,7 @@ void Daemon::run() {
     closelog();
 }
 
-void Daemon::work(std::pair<std::string, int> record) {
+void Daemon::work(const std::pair<std::string, int>& record) {
     std::string path = record.first;
     int depth = record.second;
     std::filesystem::path startPath(path);

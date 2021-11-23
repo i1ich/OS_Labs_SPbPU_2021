@@ -7,7 +7,7 @@
 
 
 #include <string>
-#include <vector>
+#include <list>
 
 class Parser {
 public:
@@ -18,7 +18,10 @@ public:
     int getTime();
     ~Parser() = default;
 private:
-    std::vector<std::pair<std::string, int>> data;
+    std::string findPath(const std::string& file);
+
+    std::list<std::pair<std::string, int>> data;
+    std::string startPath;
     std::string configPath;
     int time;
 };
