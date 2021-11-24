@@ -64,9 +64,9 @@ int GameHost::riddleNum() {
 
 void GameHost::start() {
     Message msg;
-    waitConnection();
     int wolfNum;
-
+    m_isWork = true;
+    m_clientInfo = ClientInfo(0);
     while (m_isWork){
         if (!m_clientInfo.is_ready){
             waitConnection();
@@ -81,7 +81,7 @@ void GameHost::start() {
 
             if(m_clientInfo.deaths >= GameRules::All_DEAD_END_TIMES){
                 syslog(LOG_INFO, "INFO: Wolf win");
-                m_isWork = false;
+                return;
             }
             else{
                 m_connection.write(&msg, sizeof(msg));
@@ -89,7 +89,6 @@ void GameHost::start() {
             sem_post(m_semaphoreClient);
         }
     }
-    terminate();
 }
 
 void GameHost::updateStatus(Message &answer, int rightNum) {
@@ -137,7 +136,7 @@ void GameHost::wait() {
     }
     ts.tv_sec += GameRules::TIMEOUT;
     syslog(LOG_INFO, "INFO: Waiting for client...");
-    if (sem_timedwait(m_semaphoreClient, &ts) == -1) {
+    if (sem_timedwait(m_semaphoreHost, &ts) == -1) {
         auto proc = "/proc/" + std::to_string(m_clientInfo.pid);
         if (fs::exists(proc)) {
             kill(m_clientInfo.pid, SIGTERM);

@@ -6,7 +6,7 @@
 struct GameRules {
     static const std::string SEM_HOST_NAME;
     static const std::string SEM_CLIENT_NAME;
-    static const int TIMEOUT = 50;
+    static const int TIMEOUT = 1000000000;
 
     static const int MIN_WOLF_NUM = 1;
     static const int MAX_WOLF_NUM = 100;

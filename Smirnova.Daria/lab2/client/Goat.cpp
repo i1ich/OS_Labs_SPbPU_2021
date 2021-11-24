@@ -33,9 +33,6 @@ void Goat::start() {
     Message msg;
     m_isAlive = true;
     m_isWork = true;
-    wait();
-    syslog(LOG_INFO, "INFO: Host connected");
-
     msg.is_goat_alive = m_isAlive;
 
     while(m_isWork){
@@ -73,6 +70,7 @@ void Goat::openConnection() {
     }
 
     syslog(LOG_INFO, "INFO: Connection in client is set");
+    sem_post(m_semaphoreHost);
     kill(m_hostPid, SIGUSR1);
 
 }
