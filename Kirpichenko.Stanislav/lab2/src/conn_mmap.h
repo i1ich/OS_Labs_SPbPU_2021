@@ -1,12 +1,11 @@
+#pragma once
 #include "conn_interface.h"
-#include "singleton.h"
 
-class Connmmap: public Conn, public Singleton<Connmmap> {
+class Connmmap: public Conn {
     void* _shared_memory = nullptr;
-    protected:
-    Connmmap();
-    ~Connmmap();
     public:
+    Connmmap();
     void write(const Weather& info) override;
     Weather read() override;
+    ~Connmmap();
 };

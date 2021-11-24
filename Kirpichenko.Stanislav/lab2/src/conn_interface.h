@@ -1,13 +1,11 @@
 #pragma once
 #include <time.h>
 
-
 struct Weather {
     inline static const char* dateFormat = "%d.%m.%Y";
     tm date;
-    int temp;
+    double temp;
 };
-
 
 class Conn {
     public:
