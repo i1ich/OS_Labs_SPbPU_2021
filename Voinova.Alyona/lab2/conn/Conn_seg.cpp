@@ -8,9 +8,9 @@
 #include <sys/shm.h>
 #include "IConn.h"
 
-void IConn::open(size_t id, bool create) {
+void IConn::openConn(size_t id, bool create) {
     _owner = create;
-    _name = "lab2:shared memory";
+    _name = "tmp/lab2_seg";
     _id = -1;
 
     if (_owner) {
@@ -23,9 +23,9 @@ void IConn::open(size_t id, bool create) {
     }
 }
 
-void IConn::write(WeatherDTO *buf, size_t size) const {
+void IConn::writeConn(WeatherDTO *buf, size_t size) const {
     WeatherDTO *shm_buf = (WeatherDTO*) shmat(_id, nullptr, 0);
-    if(shm_buf == (WeatherDTO*)-1){
+    if(shm_buf == (WeatherDTO*) -1){
         throw std::runtime_error("writting failed, error " + std::string(strerror(errno)));
     }
     memcpy(shm_buf, buf, size);
@@ -34,9 +34,10 @@ void IConn::write(WeatherDTO *buf, size_t size) const {
     }
 }
 
-void IConn::read(WeatherDTO *buf, size_t size) const {
+void IConn::readConn(WeatherDTO *buf, size_t size) const {
     WeatherDTO *shm_buf = (WeatherDTO*) shmat(_id, nullptr, 0);
-    if(shm_buf == (WeatherDTO*)-1){
+    memcpy(buf, shm_buf, size);
+    if(shm_buf == (WeatherDTO*) -1){
         throw std::runtime_error("reading failed, error " + std::string(strerror(errno)));
     }
     if(shmdt(shm_buf) == -1) {
@@ -44,7 +45,7 @@ void IConn::read(WeatherDTO *buf, size_t size) const {
     }
 }
 
-void IConn::close() {
+void IConn::closeConn() {
     if(_owner && shmctl(_id, IPC_RMID, nullptr) < 0){
         throw std::runtime_error("clode failed, error " + std::string(strerror(errno)));
     }

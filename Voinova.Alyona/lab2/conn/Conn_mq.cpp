@@ -9,9 +9,9 @@
 #include <mqueue.h>
 #include "IConn.h"
 
-void IConn::open(size_t id, bool create) {
+void IConn::openConn(size_t id, bool create) {
     _owner = create;
-    _name = "lab2:queue";
+    _name = "tmp/lab2_mq";
     _id = -1;
 
     if (_owner) {
@@ -29,23 +29,23 @@ void IConn::open(size_t id, bool create) {
     }
 }
 
-void IConn::read(WeatherDTO *buf, size_t size) const {
+void IConn::readConn(WeatherDTO *buf, size_t size) const {
     if(mq_receive(_id, reinterpret_cast<char*>(buf), size, nullptr) == -1){
         throw std::runtime_error("reading error " + std::string(strerror(errno)));
     }
 }
 
-void IConn::write(WeatherDTO *buf, size_t size) const {
-    if(mq_send(_id, reinterpret_cast<char*>(buf), size, 1) == 0){
+void IConn::writeConn(WeatherDTO *buf, size_t size) const {
+    if(mq_send(_id, reinterpret_cast<char*>(buf), size, 1) == -1){
         throw std::runtime_error("writing error " + std::string(strerror(errno)));
     }
 }
 
-void IConn::close() {
+void IConn::closeConn() {
     if(mq_close(_id) == -1){
         throw std::runtime_error("writing error " + std::string(strerror(errno)));
     }
     if(_owner && mq_unlink(_name.c_str()) != 0){
-        throw std::runtime_error("close error " + std::string(strerror(errno)));
+        throw std::runtime_error("closeConn error " + std::string(strerror(errno)));
     }
 }

@@ -10,10 +10,10 @@
 
 class IConn {
 public:
-    void open(size_t id, bool create);
-    void read(WeatherDTO *buf, size_t size) const;
-    void write(WeatherDTO *buf, size_t size) const;
-    void close();
+    void openConn(size_t id, bool create);
+    void readConn(WeatherDTO *buf, size_t size) const;
+    void writeConn(WeatherDTO *buf, size_t size) const;
+    void closeConn();
 
 private:
     int _id;
