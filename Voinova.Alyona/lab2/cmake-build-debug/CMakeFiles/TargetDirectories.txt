@@ -1,0 +1,3 @@
+/home/pikabol88/CLionProjects/GIT/OS_Labs_SPbPU_2021/Voinova.Alyona/lab2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/pikabol88/CLionProjects/GIT/OS_Labs_SPbPU_2021/Voinova.Alyona/lab2/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/pikabol88/CLionProjects/GIT/OS_Labs_SPbPU_2021/Voinova.Alyona/lab2/cmake-build-debug/CMakeFiles/lab2.dir

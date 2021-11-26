@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/lab2.dir/main.cpp.o CMakeFiles/lab2.dir/client/client.cpp.o CMakeFiles/lab2.dir/host/host.cpp.o CMakeFiles/lab2.dir/data/WeatherDTO.cpp.o CMakeFiles/lab2.dir/conn/Conn_mq.cpp.o CMakeFiles/lab2.dir/conn/Conn_seg.cpp.o CMakeFiles/lab2.dir/conn/Conn_fifo.cpp.o -o lab2 
