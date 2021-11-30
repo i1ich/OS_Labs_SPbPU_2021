@@ -29,7 +29,6 @@ Goat::Goat() : is_alive(true) {
 }
 
 Goat::~Goat() {
-    syslog(LOG_INFO, "DELETE GOAT");
     closelog();
 }
 

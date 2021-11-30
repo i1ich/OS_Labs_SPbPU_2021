@@ -100,6 +100,11 @@ void Wolf::signal_handler(int signal_id, siginfo_t* info, void* ptr) {
         inst.goats.erase(client_pid);
         break;
         }
+    case SIGINT:
+    case SIGTERM: {
+        inst.continue_the_game = false;
+        break;
+        }
     }
 
     return;
