@@ -16,7 +16,10 @@ private:
 
     pid_t host_pid;
     bool connection_created = false;
+    bool host_is_ready = false;
     bool continue_the_game = true;
+
+    struct timespec send_request_to_connect_time;
 
 public:
     Goat();

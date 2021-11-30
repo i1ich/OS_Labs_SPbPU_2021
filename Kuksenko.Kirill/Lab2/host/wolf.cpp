@@ -30,10 +30,10 @@ Wolf::Wolf() {
 
 Wolf::~Wolf() {
     for (pid_thread_t::iterator iter = goats.begin(); iter != goats.end(); ++iter) {
-        kill(iter->first, SIGTERM);
-
         sem_t* host_sem = sem_open((Semaphores::host_semaphore_name + std::to_string(iter->first)).c_str(), 0);
         sem_t* client_sem = sem_open((Semaphores::host_semaphore_name + std::to_string(iter->first)).c_str(), 0);
+
+        kill(iter->first, SIGTERM);
 
         if (sem_close(host_sem) == -1) {
             syslog(LOG_ERR, "Can't close host semaphore for client with pid %i", iter->first);
@@ -147,8 +147,8 @@ void* Wolf::game(void* argv) {
             return nullptr;
         }
 
-        // syslog(LOG_INFO, "Host Get status : %i", (int)message.goat_status);
-        // syslog(LOG_INFO, "Host Get number : %lu", message.goat_number);
+        syslog(LOG_INFO, "Host Get status : %i", (int)message.goat_status);
+        syslog(LOG_INFO, "Host Get number : %lu", message.goat_number);
 
         Wolf& wolf = instanse();
         goat_status = new bool(wolf.chase_goat(message.goat_status, message.goat_number));
@@ -187,6 +187,11 @@ int Wolf::run() {
     while (goats.size() != max_goats_num);
 
     syslog(LOG_INFO, "All cleints connected. Starting the game");
+
+    for (pid_thread_t::iterator iter = goats.begin(); iter != goats.end(); ++iter) {
+        kill(iter->first, SIGUSR2);
+    }
+
     syslog(LOG_INFO, "Init clients' threads");
 
     while(continue_the_game) {
@@ -238,8 +243,7 @@ size_t Wolf::generate_number() const {
 bool Wolf::chase_goat(bool is_alive, size_t goat_num) const {
     size_t dif = abs(generate_number() - goat_num);
 
-    return false;
-
+    // return false;
     return is_alive ?
     dif <= Game::alive_goat_dividend / max_goats_num :
     dif <= Game::dead_goat_dividend / max_goats_num;
@@ -248,12 +252,14 @@ bool Wolf::chase_goat(bool is_alive, size_t goat_num) const {
 void Wolf::define_game_status(bool is_all_goats_dead) {
     if (is_all_goats_dead) {
         ++cur_turns_counter_without_alive_goats;
+        syslog(LOG_INFO, "All goats dead");
     }
     else {
         cur_turns_counter_without_alive_goats = 0;
     }
 
     if (cur_turns_counter_without_alive_goats == Game::steps_for_end_game) {
+        syslog(LOG_INFO, "All goat dead too long");
         continue_the_game = false;
     }
 }

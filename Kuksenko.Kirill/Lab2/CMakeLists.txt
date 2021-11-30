@@ -14,7 +14,7 @@ add_compile_options(-Wall -Werror)
 include_directories(${CONNECTION})
 include_directories(${MODEL})
 
-foreach(CONN fifo)
+foreach(CONN seg mq fifo)
     add_executable(host_${CONN} ${HOST_SRC}/host.cpp ${HOST_SRC}/wolf.h ${HOST_SRC}/wolf.cpp
                         ${MODEL}/game.h ${MODEL}/semaphores.h
                         ${CONNECTION}/conn.h ${CONNECTION}/conn_${CONN}.cpp)
@@ -26,4 +26,4 @@ foreach(CONN fifo)
                         ${CONNECTION}/conn.h ${CONNECTION}/conn_${CONN}.cpp)
 
     target_link_libraries(client_${CONN} rt pthread)
-endforeach(CONN fifo)
+endforeach(CONN seg mq fifo)

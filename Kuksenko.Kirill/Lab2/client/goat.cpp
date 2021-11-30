@@ -21,6 +21,7 @@ Goat::Goat() : is_alive(true) {
     act.sa_flags = SA_SIGINFO;
 
     sigaction(SIGUSR1, &act, NULL);
+    sigaction(SIGUSR2, &act, NULL);
     sigaction(SIGTERM, &act, NULL);
     sigaction(SIGINT, &act, NULL);
 
@@ -28,6 +29,7 @@ Goat::Goat() : is_alive(true) {
 }
 
 Goat::~Goat() {
+    syslog(LOG_INFO, "DELETE GOAT");
     closelog();
 }
 
@@ -48,6 +50,11 @@ void Goat::signal_handler(int signal_id, siginfo_t* info, void* ptr) {
         syslog(LOG_INFO, "Host accepted request for connect");
         break;
 
+    case SIGUSR2:
+        inst.host_is_ready = true;
+        syslog(LOG_INFO, "All clients connected and clients can start work");
+        break;
+
     case SIGINT:
     case SIGTERM:
         inst.continue_the_game = false;
@@ -58,10 +65,22 @@ void Goat::signal_handler(int signal_id, siginfo_t* info, void* ptr) {
 }
 
 int Goat::run() {
-    while(!connection_created);
+    while(!connection_created) {
+        struct timespec ts;
+        if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
+            syslog(LOG_ERR, "Can not get current time");
+            return end_work();
+        }
+
+        if (abs(ts.tv_sec - send_request_to_connect_time.tv_sec) > Game::time_out_sec) {
+            syslog(LOG_ERR, "Client can not connect to host");
+            return end_work();
+        }
+    }
+    while(!host_is_ready);
     pid_t pid = getpid();
 
-    syslog(LOG_INFO, "Client run - pid %i", pid);
+    syslog(LOG_INFO, "Client run");
 
     std::string pid_as_string = std::to_string(pid);
     sem_t* host_sem = sem_open((Semaphores::host_semaphore_name + pid_as_string).c_str(), 0);
@@ -82,15 +101,12 @@ int Goat::run() {
         {
             Semaphores::Message message { is_alive, generate_number() };
 
-            syslog(LOG_INFO, "AFTER MESSAGE");
-
             if (!conn.Write(&message, sizeof(Semaphores::Message))) {
                 syslog(LOG_ERR, "Client with pid %i can not write message", pid);
                 std::cout << "err" << std::endl;
                 return end_work();
             }
 
-            syslog(LOG_INFO, "AFTER WRITE");
         }
 
         syslog(LOG_INFO, "Client with pid %i wrote message successfully", pid);
@@ -120,8 +136,8 @@ int Goat::run() {
                 return end_work();
             }
 
-            // syslog(LOG_INFO, "Client read status %i", (int)message.goat_status);
-            // syslog(LOG_INFO, "Client read number %lu", message.goat_number);
+            syslog(LOG_INFO, "Client read status %i", (int)message.goat_status);
+            syslog(LOG_INFO, "Client read number %lu", message.goat_number);
 
             is_alive = message.goat_status;
         }
@@ -152,6 +168,12 @@ bool Goat::connect_to_host(pid_t pid) {
     host_pid = pid;
 
     kill(host_pid, SIGUSR1);
+
+    if (clock_gettime(CLOCK_REALTIME, &send_request_to_connect_time) == -1) {
+        syslog(LOG_ERR, "Can not get current time");
+        return false;
+    }
+
     return true;
 }
 
