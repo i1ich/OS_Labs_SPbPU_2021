@@ -8,17 +8,20 @@
 
 class Goat {
 public:
-    static Goat& getInstance(int hostPid);
+    static Goat& getInstance();
     Goat(const Goat& goat) = delete;
     Goat& operator=(const Goat&) = delete;
 
+    void setHostPid(int hostPid);
     void openConnection();
     void start();
     void terminate();
     bool isWork();
 
+    ~Goat();
+
 private:
-    Goat(int hostPid);
+    Goat();
 
     static void signalHandler(int signal);
     int guessNum();
@@ -28,7 +31,7 @@ private:
     bool m_isWork;
     bool m_isAlive;
     int m_hostPid;
-    Connection m_connection;
+    Connection* m_connection;
     sem_t* m_semaphoreClient;
     sem_t* m_semaphoreHost;
 

@@ -6,17 +6,14 @@
 
 class Connection {
 public:
-    virtual void open(size_t hostPid, bool isCreator);
-    virtual void read(void *buf, size_t count);
-    virtual void write(void *buf, size_t count);
-    virtual void close();
+    static Connection* createConnection();
 
-private:
-    bool m_isCreator;
-    std::string m_connectionName;
-    int m_segId;
-    int m_descriptor;
-    char* m_segMap;
+    virtual void open(size_t hostPid, bool isCreator) = 0;
+    virtual void read(void *buf, size_t count) = 0;
+    virtual void write(void *buf, size_t count) = 0;
+    virtual void close() = 0;
+
+    virtual ~Connection() = default;
 };
 
 #endif //LAB2_VAR5_ICONNECTION_H

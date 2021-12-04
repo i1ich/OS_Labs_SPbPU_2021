@@ -12,13 +12,14 @@ namespace fs = std::filesystem;
 
 Goat* Goat::s_goat;
 
-Goat& Goat::getInstance(int hostPid) {
+Goat& Goat::getInstance() {
     if (!s_goat)
-        s_goat = new Goat(hostPid);
+        s_goat = new Goat();
     return *s_goat;
 }
 
-Goat::Goat(int hostPid) : m_isWork(false), m_isAlive(true), m_hostPid(hostPid) {
+Goat::Goat() : m_isWork(false), m_isAlive(true), m_hostPid(-1) {
+    m_connection = Connection::createConnection();
     signal(SIGUSR1, signalHandler);
     signal(SIGTERM, signalHandler);
     signal(SIGINT, signalHandler);
@@ -30,6 +31,9 @@ bool Goat::isWork() {
 
 void Goat::start() {
     syslog(LOG_INFO, "INFO: Start client");
+    if (m_hostPid < 0)
+        throw std::runtime_error("host pid was not set to client");
+
     Message msg;
     m_isAlive = true;
     m_isWork = true;
@@ -38,14 +42,14 @@ void Goat::start() {
     while(m_isWork){
         msg.number = guessNum();
         syslog(LOG_INFO, "INFO: Goat number: %i", msg.number);
-        m_connection.write(&msg, sizeof(Message));
+        m_connection->write(&msg, sizeof(Message));
         sem_post(m_semaphoreHost);
         wait();
         if(!m_isWork){
             syslog(LOG_INFO, "INFO: The host has finished working");
             continue;
         }
-        m_connection.read(&msg, sizeof(Message));
+        m_connection->read(&msg, sizeof(Message));
         m_isAlive = msg.is_goat_alive;
         syslog(LOG_INFO, "INFO: Goat is alive: %i", m_isAlive);
     }
@@ -53,19 +57,21 @@ void Goat::start() {
 
 void Goat::openConnection() {
     syslog(LOG_INFO, "INFO: In client start connect...");
+    if (m_hostPid < 0)
+        throw std::runtime_error("host pid was not set to client");
 
-    m_connection.open(m_hostPid, false);
+    m_connection->open(m_hostPid, false);
 
     m_semaphoreHost = sem_open(GameRules::SEM_HOST_NAME.c_str(), 0);
     m_semaphoreClient = sem_open(GameRules::SEM_CLIENT_NAME.c_str(), 0);
 
     if (m_semaphoreHost == SEM_FAILED) {
-        m_connection.close();
+        m_connection->close();
         throw std::runtime_error("host semaphore open failed with error " + std::string(strerror(errno)));
     }
     if (m_semaphoreClient == SEM_FAILED){
         sem_close(m_semaphoreHost);
-        m_connection.close();
+        m_connection->close();
         throw std::runtime_error("client semaphore open failed with error " + std::string(strerror(errno)));
     }
 
@@ -96,6 +102,8 @@ void Goat::wait() {
 }
 
 void Goat::terminate() {
+    if (m_hostPid < 0)
+        throw std::runtime_error("host pid was not set to client");
     auto proc = "/proc/" + std::to_string(m_hostPid);
     if (fs::exists(proc)) {
         kill(m_hostPid, SIGUSR2);
@@ -111,13 +119,13 @@ void Goat::terminate() {
     if (sem_close(m_semaphoreClient) == -1)
         throw std::runtime_error("Error in client sem_close : " + std::string(strerror(errno)));
 
-    m_connection.close();
+    m_connection->close();
     m_isWork = false;
     syslog(LOG_INFO, "INFO: Goat has been terminated");
 }
 
 void Goat::signalHandler(int signal) {
-    Goat &goat = getInstance(0);
+    Goat &goat = getInstance();
     switch (signal) {
         case SIGTERM:
         case SIGINT:
@@ -130,4 +138,12 @@ void Goat::signalHandler(int signal) {
             syslog(LOG_INFO, "INFO: Client got unknown signal");
             break;
     }
+}
+
+void Goat::setHostPid(int hostPid) {
+    m_hostPid = hostPid;
+}
+
+Goat::~Goat() {
+    delete m_connection;
 }

@@ -24,7 +24,8 @@ int main(int argc, char* argv[]){
         return EXIT_FAILURE;
     }
 
-    Goat& client = Goat::getInstance(pid);
+    Goat& client = Goat::getInstance();
+    client.setHostPid(pid);
     try {
         client.openConnection();
         client.start();

@@ -19,6 +19,8 @@ GameHost &GameHost::getInstance() {
 }
 
 GameHost::GameHost() : m_clientInfo(0), m_isWork(false) {
+    m_connection = Connection::createConnection();
+
     struct sigaction sig{};
     memset(&sig, 0, sizeof(sig));
     sig.sa_sigaction = signalHandler;
@@ -36,7 +38,7 @@ bool GameHost::isWork() {
 void GameHost::openConnection() {
     syslog(LOG_INFO, "INFO: Start connect in host...");
 
-    m_connection.open(getpid(), true);
+    m_connection->open(getpid(), true);
 
     sem_unlink(GameRules::SEM_HOST_NAME.c_str());
     sem_unlink(GameRules::SEM_CLIENT_NAME.c_str());
@@ -44,12 +46,12 @@ void GameHost::openConnection() {
     m_semaphoreClient = sem_open(GameRules::SEM_CLIENT_NAME.c_str(),  O_CREAT, 0666, 0);
 
     if (m_semaphoreHost == SEM_FAILED) {
-        m_connection.close();
+        m_connection->close();
         throw std::runtime_error("host semaphore open failed with error " + std::string(strerror(errno)));
     }
     if (m_semaphoreClient == SEM_FAILED) {
         sem_close(m_semaphoreHost);
-        m_connection.close();
+        m_connection->close();
         throw std::runtime_error("client semaphore open failed with error " + std::string(strerror(errno)));
     }
     syslog(LOG_INFO, "INFO: Connection in host is set");
@@ -73,7 +75,7 @@ void GameHost::start() {
         }
         else{
             wait();
-            m_connection.read(&msg, sizeof(msg));
+            m_connection->read(&msg, sizeof(msg));
             wolfNum = riddleNum();
             syslog(LOG_INFO, "INFO: Wolf number: %i", wolfNum);
             updateStatus(msg, wolfNum);
@@ -84,7 +86,7 @@ void GameHost::start() {
                 return;
             }
             else{
-                m_connection.write(&msg, sizeof(msg));
+                m_connection->write(&msg, sizeof(msg));
             }
             sem_post(m_semaphoreClient);
         }
@@ -120,7 +122,7 @@ void GameHost::terminate() {
         sem_unlink(GameRules::SEM_CLIENT_NAME.c_str()) == -1) {
         throw std::runtime_error("sem_unlink error : " + std::string(strerror(errno)));
     }
-    m_connection.close();
+    m_connection->close();
     syslog(LOG_INFO, "INFO: Host terminated");
 }
 
@@ -178,4 +180,8 @@ void GameHost::waitConnection() {
     wait();
     sem_post(m_semaphoreClient);
     syslog(LOG_INFO, "INFO: Client connected to host");
+}
+
+GameHost::~GameHost() {
+    delete m_connection;
 }

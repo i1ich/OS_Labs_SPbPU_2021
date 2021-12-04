@@ -19,6 +19,8 @@ public:
     void terminate();
     bool isWork();
 
+    ~GameHost();
+
 private:
     GameHost();
     void updateStatus(Message& answer, int rightNum);
@@ -28,7 +30,7 @@ private:
     void waitConnection();
 
     static GameHost* s_host;
-    Connection m_connection;
+    Connection* m_connection;
     ClientInfo m_clientInfo;
     sem_t* m_semaphoreClient;
     sem_t* m_semaphoreHost;
