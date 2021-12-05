@@ -7,20 +7,19 @@ add_compile_options(-Wall -Werror)
 find_package (Threads)
 find_library (LIBRT rt)
 
-add_executable(host_mq utils/Message.h utils/ClientInfo.h utils/GameRules.h
-        connections/Connection.h connections/conn_mq.cpp connections/conn_mq.h
-        host/GameHost.cpp host/GameHost.h host/host.cpp)
-add_executable(client_mq utils/Message.h utils/ClientInfo.h utils/GameRules.h
-        connections/Connection.h connections/conn_mq.cpp connections/conn_mq.h
-        client/client.cpp client/Goat.h client/Goat.cpp)
-target_link_libraries(host_mq PUBLIC pthread rt)
-target_link_libraries(client_mq PUBLIC pthread rt)
+file(GLOB CONNECTIONS connections/conn_*.h)
+file(GLOB HOST host/*.cpp host/*.h)
+file(GLOB UTILS utils/*.h)
+file(GLOB CLIENT client/*.cpp client/*.h)
 
-add_executable(host_seg utils/Message.h utils/ClientInfo.h utils/GameRules.h
-        connections/Connection.h connections/conn_seg.cpp connections/conn_seg.h
-        host/GameHost.cpp host/GameHost.h host/host.cpp)
-add_executable(client_seg utils/Message.h utils/ClientInfo.h utils/GameRules.h
-        connections/Connection.h connections/conn_seg.cpp connections/conn_seg.h
-        client/client.cpp client/Goat.h client/Goat.cpp)
-target_link_libraries(host_seg PUBLIC pthread)
-target_link_libraries(client_seg PUBLIC pthread)
+foreach(PATH_TO_CON ${CONNECTIONS})
+        get_filename_component(FILE_NAME ${PATH_TO_CON} NAME_WLE )
+        string(REGEX REPLACE "conn_" "" CONN_NAME ${FILE_NAME})
+
+        add_executable(host_${CONN_NAME} ${UTILS} ${HOST}
+                connections/Connection.h connections/conn_${CONN_NAME}.cpp connections/conn_${CONN_NAME}.h)
+        add_executable(client_${CONN_NAME} ${UTILS} ${CLIENT}
+                connections/Connection.h connections/conn_${CONN_NAME}.cpp connections/conn_${CONN_NAME}.h)
+        target_link_libraries(host_${CONN_NAME} PUBLIC pthread rt)
+        target_link_libraries(client_${CONN_NAME} PUBLIC pthread rt)
+endforeach()
