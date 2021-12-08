@@ -58,10 +58,10 @@ public:
 
             // Determine new goat state
             if (msg.alive)
-                msg.alive = abs((int)msg.roll - (int)wolfRoll) <= ALIVE_GAP ? true : false;
+                msg.alive = (size_t)abs((int)msg.roll - (int)wolfRoll) <= ALIVE_GAP ? true : false;
             else
-                msg.alive = abs((int)msg.roll - (int)wolfRoll) <= DEAD_GAP ? true : false;
-               
+                msg.alive = (size_t)abs((int)msg.roll - (int)wolfRoll) <= DEAD_GAP ? true : false;
+
             const std::string isAlive = msg.alive ? "True" : "False";
             std::cout << "Goat alive: " << isAlive << std::endl;
 
@@ -97,8 +97,9 @@ private:
             Client client(semHostMsg, semClientMsg);
             client.run();
         }
-        else if (childPid == -1)
-            throw std::runtime_error("Couldn't create child proccess");
+        else
+            if (childPid == -1)
+                throw std::runtime_error("Couldn't create child proccess");
     }
 
     bool gameOver() const { return deathRow > 1 ? true : false; }

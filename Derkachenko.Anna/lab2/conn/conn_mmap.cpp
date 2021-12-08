@@ -7,12 +7,6 @@
 class ConnMmap : public Conn
 {
 public:
-    ConnMmap(void* ptr, size_t size)
-    {
-        mem = ptr;
-        memSize = size;
-    }
-
     ~ConnMmap()
     {
         if (munmap(mem, memSize) == -1)
@@ -26,7 +20,15 @@ public:
     void write(const Message &msg) override { std::memcpy(mem, &msg, sizeof(msg)); }
 
 private:
-    void* mem;
+    ConnMmap(void* ptr, size_t size)
+    {
+        mem = ptr;
+        memSize = size;
+    }
+
+    friend Conn* Conn::create(bool isHost);
+
+    void *mem;
     size_t memSize;
 };
 

@@ -6,15 +6,6 @@
 class ConnPipe : public Conn
 {
 public:
-    ConnPipe(int hostPipeFd[], int clientPipeFd[], bool isHost)
-    {
-        hostFd[0] = hostPipeFd[0];
-        hostFd[1] = hostPipeFd[1];
-        clientFd[0] = clientPipeFd[0];
-        clientFd[1] = clientPipeFd[1];
-        this->isHost = isHost;
-    }
-
     ~ConnPipe()
     {
         if (close(hostFd[0]) == -1 || close(hostFd[1]) == -1 || close(clientFd[0]) == -1 || close(clientFd[1]) == -1)
@@ -39,6 +30,17 @@ public:
     }
 
 private:
+    ConnPipe(int hostPipeFd[], int clientPipeFd[], bool isHost)
+    {
+        hostFd[0] = hostPipeFd[0];
+        hostFd[1] = hostPipeFd[1];
+        clientFd[0] = clientPipeFd[0];
+        clientFd[1] = clientPipeFd[1];
+        this->isHost = isHost;
+    }
+
+    friend Conn* Conn::create(bool isHost);
+
     int hostFd[2], clientFd[2];
     bool isHost;
 };

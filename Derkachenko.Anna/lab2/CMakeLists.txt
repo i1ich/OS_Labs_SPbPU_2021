@@ -9,12 +9,11 @@ find_package(Threads REQUIRED)
 
 include_directories(host client conn utils)
 FILE(GLOB HOST host/*.cpp)
+FILE(GLOB CONN conn/conn_*.cpp)
 
-add_executable(${PROJECT_NAME}-mmap ${HOST} conn/conn_mmap.cpp)
-target_link_libraries(${PROJECT_NAME}-mmap Threads::Threads)
-
-add_executable(${PROJECT_NAME}-shm ${HOST} conn/conn_shm.cpp)
-target_link_libraries(${PROJECT_NAME}-shm Threads::Threads)
-
-add_executable(${PROJECT_NAME}-pipe ${HOST} conn/conn_pipe.cpp)
-target_link_libraries(${PROJECT_NAME}-pipe Threads::Threads)
+foreach(CONN_PATH ${CONN})
+    get_filename_component(CONN_FILE ${CONN_PATH} NAME_WLE )
+    string(REGEX REPLACE "conn_" "" CONN_TYPE ${CONN_FILE})
+    add_executable(${PROJECT_NAME}-${CONN_TYPE} ${HOST} ${CONN_PATH})
+    target_link_libraries(${PROJECT_NAME}-${CONN_TYPE} Threads::Threads rt)
+endforeach()
