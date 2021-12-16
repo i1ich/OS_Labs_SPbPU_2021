@@ -41,8 +41,9 @@ private:
     static void* game(void* argv);
 
     size_t generate_number() const;
-    bool chase_goat(bool is_alive, size_t goat_num) const;
+    bool chase_goat(bool is_alive, size_t goat_num, size_t& wolf_number) const;
 
     void define_game_status(bool is_all_goats_dead);
 
+    void next_iter();
 };

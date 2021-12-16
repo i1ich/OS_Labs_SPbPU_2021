@@ -31,9 +31,7 @@ Wolf::Wolf() {
 Wolf::~Wolf() {
     for (pid_thread_t::iterator iter = goats.begin(); iter != goats.end(); ++iter) {
         sem_t* host_sem = sem_open((Semaphores::host_semaphore_name + std::to_string(iter->first)).c_str(), 0);
-        sem_t* client_sem = sem_open((Semaphores::host_semaphore_name + std::to_string(iter->first)).c_str(), 0);
-
-        kill(iter->first, SIGTERM);
+        sem_t* client_sem = sem_open((Semaphores::client_semaphore_name + std::to_string(iter->first)).c_str(), 0);
 
         if (sem_close(host_sem) == -1) {
             syslog(LOG_ERR, "Can't close host semaphore for client with pid %i", iter->first);
@@ -91,7 +89,7 @@ void Wolf::signal_handler(int signal_id, siginfo_t* info, void* ptr) {
 
         inst.goats[client_pid] = 0;
 
-        inst.connections.push_back(new Connection(client_pid, true, sizeof(Semaphores::Message)));
+        inst.connections.push_back(Connection::create(client_pid, true, sizeof(Semaphores::Message)));
 
         kill(client_pid, SIGUSR1);
         break;
@@ -116,8 +114,6 @@ void* Wolf::game(void* argv) {
 
     bool* goat_status;
 
-    openlog("thread: ", LOG_PID, 0);
-
     sem_t* host_sem = sem_open((Semaphores::host_semaphore_name + pid_as_string).c_str(), 0);
     if (host_sem == SEM_FAILED) {
         syslog(LOG_ERR, "Cleint with pid %i can not get access to host semaphore", pid);
@@ -130,7 +126,7 @@ void* Wolf::game(void* argv) {
         return nullptr;
     }
 
-    Connection conn(pid, false);
+    Connection* conn = Connection::create(pid, false);
 
     struct timespec ts;
     if (!Semaphores::time_out(&ts)) {
@@ -142,12 +138,12 @@ void* Wolf::game(void* argv) {
         return nullptr;
     }
 
-    syslog(LOG_INFO, "Host continue to work after client sem waint");
+    syslog(LOG_INFO, "Host continue to work after client sem wait");
 
     {
         Semaphores::Message message;
 
-        if (!conn.Read(&message, sizeof(Semaphores::Message))) {
+        if (!conn->Read(&message, sizeof(Semaphores::Message))) {
             syslog(LOG_ERR, "Host can not read");
             return nullptr;
         }
@@ -155,14 +151,22 @@ void* Wolf::game(void* argv) {
         syslog(LOG_INFO, "Host Get status : %i", (int)message.goat_status);
         syslog(LOG_INFO, "Host Get number : %lu", message.goat_number);
 
+        std::cout << "Client pid: " << pid << ", goat number: " << message.goat_number << ", goat status: " <<
+                                                                    (message.goat_status ? "alive" : "dead") << std::endl;
+
         Wolf& wolf = instanse();
-        goat_status = new bool(wolf.chase_goat(message.goat_status, message.goat_number));
+        size_t wolf_number;
+        goat_status = new bool(wolf.chase_goat(message.goat_status, message.goat_number, wolf_number));
         message.goat_status = *goat_status;
 
-        if (!conn.Write(&message, sizeof(Semaphores::Message))) {
+        std::cout << "Client pid: " << pid << ", wolf number: " << wolf_number << ", new goat status: " << 
+                                                                    (*goat_status ? "alive" : "dead") << std::endl;
+
+        if (!conn->Write(&message, sizeof(Semaphores::Message))) {
             syslog(LOG_ERR, "Host can not write");
             return nullptr;
         }
+
     }
 
     if (sem_post(host_sem) == -1) {
@@ -181,7 +185,7 @@ void* Wolf::game(void* argv) {
         return nullptr;
     }
 
-    closelog();
+    delete conn;
 
     return goat_status;
 }
@@ -200,6 +204,8 @@ int Wolf::run() {
     syslog(LOG_INFO, "Init clients' threads");
 
     while(continue_the_game) {
+        std::cout << "New iteration" << std::endl;
+
         bool all_goats_dead = true;
 
         for (pid_thread_t::iterator iter = goats.begin(); iter != goats.end(); ++iter) {
@@ -221,9 +227,13 @@ int Wolf::run() {
             
             bool is_goat_alive = *(bool*)res;
             all_goats_dead = all_goats_dead && !is_goat_alive;
+
+            delete (bool*)res;
         }
         
         define_game_status(all_goats_dead);
+
+        next_iter();
     }
 
     syslog(LOG_INFO, "Finish the game");
@@ -245,10 +255,10 @@ size_t Wolf::generate_number() const {
     return dist(rng);
 }
 
-bool Wolf::chase_goat(bool is_alive, size_t goat_num) const {
-    size_t dif = abs(generate_number() - goat_num);
+bool Wolf::chase_goat(bool is_alive, size_t goat_num, size_t& wolf_number) const {
+    wolf_number = generate_number();
+    size_t dif = abs(wolf_number - goat_num);
 
-    // return false;
     return is_alive ?
     dif <= Game::alive_goat_dividend / max_goats_num :
     dif <= Game::dead_goat_dividend / max_goats_num;
@@ -266,5 +276,19 @@ void Wolf::define_game_status(bool is_all_goats_dead) {
     if (cur_turns_counter_without_alive_goats == Game::steps_for_end_game) {
         syslog(LOG_INFO, "All goat dead too long");
         continue_the_game = false;
+    }
+}
+
+void Wolf::next_iter() {
+    for (pid_thread_t::iterator iter = goats.begin(); iter != goats.end(); ++iter) {
+        if (!continue_the_game) {
+            kill(iter->first, SIGTERM);
+        }
+
+        sem_t* host_sem = sem_open((Semaphores::host_semaphore_name + std::to_string(iter->first)).c_str(), 0);
+
+        if (sem_post(host_sem) == -1) {
+            syslog(LOG_ERR, "Can not post host semaphore");
+        }
     }
 }

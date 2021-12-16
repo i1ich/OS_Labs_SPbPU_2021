@@ -57,6 +57,7 @@ void Goat::signal_handler(int signal_id, siginfo_t* info, void* ptr) {
     case SIGINT:
     case SIGTERM:
         inst.continue_the_game = false;
+        syslog(LOG_INFO, "Client receive siganl to finish the game");
         break;
     }
 
@@ -95,12 +96,12 @@ int Goat::run() {
     }
 
     while (continue_the_game) {
-        Connection conn(getpid(), false);
+        Connection* conn = Connection::create(getpid(), false);
 
         {
             Semaphores::Message message { is_alive, generate_number() };
 
-            if (!conn.Write(&message, sizeof(Semaphores::Message))) {
+            if (!conn->Write(&message, sizeof(Semaphores::Message))) {
                 syslog(LOG_ERR, "Client with pid %i can not write message", pid);
                 std::cout << "err" << std::endl;
                 return end_work();
@@ -117,7 +118,7 @@ int Goat::run() {
 
         struct timespec ts;
         if (!Semaphores::time_out(&ts)) {
-            syslog(LOG_ERR, "Can not gat current time");
+            syslog(LOG_ERR, "Can not get current time");
             return end_work();
         }
         if (sem_timedwait(host_sem, &ts) == -1) {
@@ -130,7 +131,7 @@ int Goat::run() {
         {
             Semaphores::Message message;
 
-            if (!conn.Read(&message, sizeof(Semaphores::Message))) {
+            if (!conn->Read(&message, sizeof(Semaphores::Message))) {
                 syslog(LOG_ERR, "Client can not read host message");
                 return end_work();
             }
@@ -145,7 +146,20 @@ int Goat::run() {
             syslog(LOG_ERR, "Client semaphore can not post");
             return end_work();
         }
+
+        delete conn;
+
+        if (!Semaphores::time_out(&ts)) {
+            syslog(LOG_ERR, "Can not get current time");
+            return end_work();
+        }
+        if (sem_timedwait(host_sem, &ts) == -1) {
+            syslog(LOG_ERR, "Can not wait host semaphore");
+        }
+
     }
+
+    syslog(LOG_INFO, "Client with pid %i finish the game without problems", pid);
 
     return 0;
 }

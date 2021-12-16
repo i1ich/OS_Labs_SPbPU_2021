@@ -3,18 +3,20 @@
 #include <iostream>
 
 class Connection {
-private:
-    std::string name;
-    int fd;
+protected:
+    // std::string name;
+    int desc;
     bool is_creater;
 
-    void* shm;
+    // void* shm;
 
 public:
-    Connection(size_t id, bool create, size_t msg_size = 0);
-    ~Connection();
+    static Connection* create(size_t id, bool create, size_t msg_size = 0);
 
-    bool Read(void* buffer, size_t count);
-    bool Write(void* buffer, size_t count);
+    // Connection(size_t id, bool create, size_t msg_size = 0);
+    virtual ~Connection() = 0;
+
+    virtual bool Read(void* buffer, size_t count) = 0;
+    virtual bool Write(void* buffer, size_t count) = 0;
 
 };

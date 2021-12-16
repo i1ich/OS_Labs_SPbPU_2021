@@ -5,7 +5,7 @@
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        std::cout << "Invalid arguments" << std::endl;
+        std::cout << "Invalid arguments. Must be two args, second arg - max clients num" << std::endl;
         return -1;
     }
 

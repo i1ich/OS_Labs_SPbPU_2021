@@ -5,11 +5,35 @@
 #include <mqueue.h>
 #include <syslog.h>
 
-#define PATHNAME "/mq"
+namespace {
+    class ConnectionMq : public Connection {
+    private:
+        static std::string const pathname;
 
-Connection::Connection(size_t id, bool create, size_t msg_size) {
+        std::string name;
+
+    public:
+        ConnectionMq(size_t id, bool create, size_t msg_size);
+        ~ConnectionMq();
+
+        bool Read(void* buffer, size_t count) override;
+        bool Write(void* buffer, size_t count) override;
+
+    };
+
+    std::string const ConnectionMq::pathname = "/mq";
+}
+
+Connection* Connection::create(size_t id, bool create, size_t msg_size) {
+    return new ConnectionMq(id, create, msg_size);
+}
+
+Connection::~Connection() {}
+
+
+ConnectionMq::ConnectionMq(size_t id, bool create, size_t msg_size) {
     is_creater = create;
-    name = std::string(PATHNAME) + std::to_string(id);
+    name = pathname + std::to_string(id);
 
     int flags = O_RDWR;
     
@@ -22,19 +46,19 @@ Connection::Connection(size_t id, bool create, size_t msg_size) {
 
         flags |= O_CREAT;
         
-        fd = mq_open(name.c_str(), flags, 0666, &attr);
+        desc = mq_open(name.c_str(), flags, 0666, &attr);
     }
     else {
-        fd = mq_open(name.c_str(), flags);
+        desc = mq_open(name.c_str(), flags);
     }
 
-    if (fd == -1) {
+    if (desc == -1) {
         syslog(LOG_ERR, "Can not open queue");
     }
 }
 
-Connection::~Connection() {
-    if (mq_close(fd) == -1) {
+ConnectionMq::~ConnectionMq() {
+    if (mq_close(desc) == -1) {
         std::cout << "Bad close" << std::endl;
     }
 
@@ -43,15 +67,15 @@ Connection::~Connection() {
     }
 }
 
-bool Connection::Read(void* buffer, size_t count) {
+bool ConnectionMq::Read(void* buffer, size_t count) {
     struct mq_attr attr;
 
-    if (mq_getattr(fd, &attr) == -1) {
+    if (mq_getattr(desc, &attr) == -1) {
         syslog(LOG_ERR, "Can not get attr");
         return false;
     }
 
-    if(mq_receive(fd, (char*)buffer, count, NULL) == -1) {
+    if(mq_receive(desc, (char*)buffer, count, NULL) == -1) {
         syslog(LOG_ERR, "Can not read");
         return false;
     }
@@ -59,8 +83,8 @@ bool Connection::Read(void* buffer, size_t count) {
     return true;
 }
 
-bool Connection::Write(void* buffer, size_t count) {
-    if (mq_send(fd, (char*)buffer, count, 0) == -1) {
+bool ConnectionMq::Write(void* buffer, size_t count) {
+    if (mq_send(desc, (char*)buffer, count, 0) == -1) {
         syslog(LOG_ERR, "Can not write");
         return false;
     }

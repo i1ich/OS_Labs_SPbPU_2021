@@ -5,28 +5,50 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
-Connection::Connection(size_t id, bool create, size_t msg_size) {
+namespace {
+    class ConnectionSeg : public Connection {
+    private:
+        void* shm;
+
+    public:
+        ConnectionSeg(size_t id, bool create, size_t msg_size);
+        ~ConnectionSeg();
+
+        bool Read(void* buffer, size_t count) override;
+        bool Write(void* buffer, size_t count) override;
+
+    };
+}
+
+Connection* Connection::create(size_t id, bool create, size_t msg_size) {
+    return new ConnectionSeg(id, create, msg_size);
+}
+
+Connection::~Connection() {}
+
+
+ConnectionSeg::ConnectionSeg(size_t id, bool create, size_t msg_size) {
     is_creater = create;
 
     int flags = create ? IPC_CREAT : 0;
-    fd = shmget(id, msg_size, 0777 | flags);
+    desc = shmget(id, msg_size, 0777 | flags);
 
-    if (fd == -1) {
+    if (desc == -1) {
         std::cout << "Bad" << std::endl;
     }
 
-    shm = shmat(fd, NULL, 0);
+    shm = shmat(desc, NULL, 0);
 }
 
-Connection::~Connection() {
+ConnectionSeg::~ConnectionSeg() {
     shmdt(shm);
 
     if (is_creater) {
-        shmctl(fd, IPC_RMID, NULL);
+        shmctl(desc, IPC_RMID, NULL);
     }
 }
 
-bool Connection::Read(void* buffer, size_t count) {
+bool ConnectionSeg::Read(void* buffer, size_t count) {
     if (buffer == nullptr) {
         return false;
     }
@@ -35,7 +57,7 @@ bool Connection::Read(void* buffer, size_t count) {
     return true;
 }
 
-bool Connection::Write(void* buffer, size_t count) {
+bool ConnectionSeg::Write(void* buffer, size_t count) {
     if (buffer == nullptr) {
         return false;
     }
