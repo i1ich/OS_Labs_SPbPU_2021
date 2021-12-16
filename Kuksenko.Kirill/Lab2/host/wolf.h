@@ -27,6 +27,8 @@ private:
     pid_thread_t goats;
     std::vector<Connection*> connections;
 
+    size_t wolf_number;
+
 public:
     Wolf();
     ~Wolf();
@@ -40,8 +42,10 @@ private:
     static void signal_handler(int signal, siginfo_t * info, void * context);
     static void* game(void* argv);
 
+    // static bool chase_goat(bool is_alive, size_t goat_num);
+
     size_t generate_number() const;
-    bool chase_goat(bool is_alive, size_t goat_num, size_t& wolf_number) const;
+    bool chase_goat(bool is_alive, size_t goat_num) const;
 
     void define_game_status(bool is_all_goats_dead);
 

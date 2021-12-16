@@ -155,12 +155,10 @@ void* Wolf::game(void* argv) {
                                                                     (message.goat_status ? "alive" : "dead") << std::endl;
 
         Wolf& wolf = instanse();
-        size_t wolf_number;
-        goat_status = new bool(wolf.chase_goat(message.goat_status, message.goat_number, wolf_number));
+        goat_status = new bool(wolf.chase_goat(message.goat_status, message.goat_number));
         message.goat_status = *goat_status;
 
-        std::cout << "Client pid: " << pid << ", wolf number: " << wolf_number << ", new goat status: " << 
-                                                                    (*goat_status ? "alive" : "dead") << std::endl;
+        std::cout << "Client pid: " << pid << ", new goat status: " <<  (*goat_status ? "alive" : "dead") << std::endl;
 
         if (!conn->Write(&message, sizeof(Semaphores::Message))) {
             syslog(LOG_ERR, "Host can not write");
@@ -217,6 +215,9 @@ int Wolf::run() {
 
         syslog(LOG_INFO, "All threads was successfully created");
 
+        wolf_number = generate_number();
+        std::cout << "wolf number: " << wolf_number << std::endl;
+
         for (pid_thread_t::iterator iter = goats.begin(); iter != goats.end(); ++iter) {
             void* res;
 
@@ -255,8 +256,7 @@ size_t Wolf::generate_number() const {
     return dist(rng);
 }
 
-bool Wolf::chase_goat(bool is_alive, size_t goat_num, size_t& wolf_number) const {
-    wolf_number = generate_number();
+bool Wolf::chase_goat(bool is_alive, size_t goat_num) const {
     size_t dif = abs(wolf_number - goat_num);
 
     return is_alive ?
