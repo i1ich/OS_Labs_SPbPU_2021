@@ -12,14 +12,17 @@ class OptimisticSyncSet : public AsyncLinkedSet<T, Compare> {
 
 public:
 
-    OptimisticSyncSet() = default;
+    OptimisticSyncSet(T const& initItem) {
+        m_head = new Node(initItem);
+        pthread_mutex_unlock(&m_head->mutex);
+    };
 
     ~OptimisticSyncSet() {
         base::clean(m_head);
     }
 
     virtual bool isEmpty() {
-        return !m_head;
+        return !m_head || !m_head->next;
     }
 
     virtual bool add(T const& item) {
@@ -40,11 +43,6 @@ public:
 
         if (prev)
             pthread_mutex_lock(&prev->mutex);
-        else {
-            m_head = new Node(item);
-            pthread_mutex_unlock(&m_head->mutex);
-            return true;
-        }
         if (cur)
             pthread_mutex_lock(&cur->mutex);
 
@@ -71,48 +69,60 @@ public:
     virtual bool remove(T const& item) {
         bool isFound;
         Node* node = static_cast<Node*>(base::findPrev(m_head, item, isFound));
-        if (isFound) {
-            Node* toRemove;
-            if (node) {
-                pthread_mutex_lock(&node->mutex);
-                toRemove = static_cast<Node*>(node->next);
-            }
-            else {
-                toRemove = m_head;
-            }
-            pthread_mutex_lock(&toRemove->mutex);
-            if (validate(node, toRemove)) {
-                if (!node)
-                    m_head = static_cast<Node*>(m_head->next);
-                else
-                    node->next = toRemove->next;
-                delete(toRemove);
-            }
-            if (node)
-                pthread_mutex_unlock(&node->mutex);
+        if (!isFound)
+            return false;
+        Node* toRemove;
+        if (node) {
+            pthread_mutex_lock(&node->mutex);
+            toRemove = static_cast<Node*>(node->next);
         }
-        return isFound;
+        else {
+            toRemove = m_head;
+        }
+        pthread_mutex_lock(&toRemove->mutex);
+
+        bool isValid = validate(node, toRemove);
+        if (isValid) {
+            if (!node)
+                m_head = static_cast<Node*>(m_head->next);
+            else
+                node->next = toRemove->next;
+            delete(toRemove);
+            toRemove = nullptr;
+        }
+
+        if (node) {
+            pthread_mutex_unlock(&node->mutex);
+        }
+        if (toRemove) {
+            pthread_mutex_unlock(&toRemove->mutex);
+        }
+
+        return isValid;
     }
 
     virtual bool contain(T const& item) {
         bool isFound;
         Node* node = static_cast<Node*>(base::findPrev(m_head, item, isFound));
+        if (!isFound)
+            return false;
         Node* next = nullptr;
         if (node) {
-            next = static_cast<Node*>(node->next);
             pthread_mutex_lock(&node->mutex);
+            next = static_cast<Node*>(node->next);
         }
-        if (next)
-            pthread_mutex_lock(&next->mutex);
+        else {
+            next = m_head;
+        }
+        pthread_mutex_lock(&next->mutex);
 
-        auto contains = validate(node, next);
-
-        if (node)
+        auto isValid = validate(node, next);
+        if (node) {
             pthread_mutex_unlock(&node->mutex);
-        if (next)
-            pthread_mutex_unlock(&next->mutex);
+        }
+        pthread_mutex_unlock(&next->mutex);
 
-        return contains;
+        return isValid;
     }
 
 private:
@@ -124,20 +134,22 @@ private:
             pthread_mutex_lock(&mutex);
         }
         ~Node() {
+            pthread_mutex_unlock(&mutex);
             pthread_mutex_destroy(&mutex);
         }
         pthread_mutex_t mutex;
     };
     
-    bool validate(Node* prevFound, Node* found) {
+    bool validate(Node const* prevFound, Node const* found) {
         Node* cur = m_head;
         if (!cur)
             return false;
         if (!prevFound)
             return found && !Compare()(cur->value, found->value) && !Compare()(found->value, cur->value);
+
         while(cur->next) {
             if (!Compare()(cur->value, prevFound->value) && !Compare()(prevFound->value, cur->value)) {
-                return !Compare()(cur->next->value, found->value) && !Compare()(found->value, cur->next->value);
+                return (!cur->next && !found) || (found && !Compare()(cur->next->value, found->value) && !Compare()(found->value, cur->next->value));
             }
             cur = static_cast<Node*>(cur->next);
         }

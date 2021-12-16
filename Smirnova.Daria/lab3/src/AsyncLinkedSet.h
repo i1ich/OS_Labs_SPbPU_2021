@@ -7,7 +7,7 @@ template<typename T, typename Compare = std::less<T>>
 class AsyncLinkedSet : public AsyncSet<T, Compare> {
 protected:
     struct Node {
-        explicit Node(T item): value(item) {}
+        explicit Node(T item): value(item), next(nullptr) {}
         T value;
         Node* next;
     };

@@ -12,18 +12,29 @@ int main(int argc, char* argv[]) {
     int readersNum = std::stoi(argv[3]);
     int readingNum = std::stoi(argv[4]);
 
-    std::cout << "COARSE SEQUENTIAL:" << std::endl;
-    Tester::run(Tester::SetType::COARSE_SET_TYPE, Tester::TestType::SEQUENTIAL_TEST_TYPE, writersNum,
-                readersNum, writingNum, readingNum);
-    std::cout << "COARSE RANDOM:" << std::endl;
-    Tester::run(Tester::SetType::COARSE_SET_TYPE, Tester::TestType::RANDOM_TEST_TYPE, writersNum,
-                readersNum, writingNum, readingNum);
+    try {
+        std::cout << std::endl << "COARSE SEQUENTIAL:" << std::endl;
+        Tester::run(Tester::SetType::COARSE_SET_TYPE, Tester::TestType::SEQUENTIAL_TEST_TYPE, writersNum,
+                    readersNum, writingNum, readingNum);
+        std::cout << std::endl << "COARSE RANDOM:" << std::endl;
+        Tester::run(Tester::SetType::COARSE_SET_TYPE, Tester::TestType::RANDOM_TEST_TYPE, writersNum,
+                    readersNum, writingNum, readingNum);
 
-    std::cout << "OPTIMISTIC SEQUENTIAL:" << std::endl;
-    Tester::run(Tester::SetType::OPTIMISTIC_SET_TYPE, Tester::TestType::SEQUENTIAL_TEST_TYPE,
-                writersNum, readersNum, writingNum, readingNum);
-    std::cout << "OPTIMISTIC RANDOM:" << std::endl;
-    Tester::run(Tester::SetType::OPTIMISTIC_SET_TYPE, Tester::TestType::RANDOM_TEST_TYPE, writersNum,
-                readersNum, writingNum, readingNum);
-    return 0;
+
+        std::cout << std::endl << "OPTIMISTIC SEQUENTIAL:" << std::endl;
+        Tester::run(Tester::SetType::OPTIMISTIC_SET_TYPE, Tester::TestType::SEQUENTIAL_TEST_TYPE,
+                    writersNum, readersNum, writingNum, readingNum);
+        std::cout << std::endl << "OPTIMISTIC RANDOM:" << std::endl;
+        Tester::run(Tester::SetType::OPTIMISTIC_SET_TYPE, Tester::TestType::RANDOM_TEST_TYPE, writersNum,
+                    readersNum, writingNum, readingNum);
+        return 0;
+    }
+    catch (std::runtime_error &error) {
+        std::cout << "ERROR: " << error.what() << std::endl;
+        return 1;
+    }
+    catch (...) {
+        std::cout << "ERROR: undefined error" << std::endl;
+        return 1;
+    }
 }

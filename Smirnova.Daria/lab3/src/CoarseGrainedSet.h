@@ -12,7 +12,7 @@ class CoarseGrainedSet : public AsyncLinkedSet<T, Compare> {
     typedef typename base::Node Node;
 
 public:
-    CoarseGrainedSet() {
+    CoarseGrainedSet() : m_head(nullptr) {
         if (pthread_mutex_init(&m_mutex, nullptr) != 0) {
             throw std::runtime_error("error in mutex initializing" + std::string(strerror(errno)));
         }
@@ -36,6 +36,7 @@ public:
         pthread_mutex_lock(&m_mutex);
         if (!m_head) {
             m_head = new Node(item);
+            pthread_mutex_unlock(&m_mutex);
             return true;
         }
         Node* prev = nullptr;
@@ -55,9 +56,16 @@ public:
                 return false;
             }
         }
-        Node* tmp = prev->next;
-        prev->next = new Node(item);
-        prev->next->next = tmp;
+        if (prev) {
+            Node *tmp = prev->next;
+            prev->next = new Node(item);
+            prev->next->next = tmp;
+        }
+        else {
+            Node* tmp = m_head;
+            m_head = new Node(item);
+            m_head->next = tmp;
+        }
         pthread_mutex_unlock(&m_mutex);
         return true;
     }

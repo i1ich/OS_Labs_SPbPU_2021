@@ -22,9 +22,10 @@ void Tester::CheckWriters(SetType setType, TestType testType, int writersNum, in
         auto set = CreateSet(setType);
         auto items = GenerateData(testType, writersNum, writingNum);
         auto startTime = clock();
+        std::vector<WriterArgs> argsArr(writersNum);
         for (int i = 0; i < writersNum; i++) {
-            auto args = CreateWriterArgs(items, i, set);
-            pthread_create(&threads[i], nullptr, asyncWrite, &args);
+            argsArr[i] = CreateWriterArgs(items, i, set);
+            pthread_create(&threads[i], nullptr, asyncWrite, &argsArr[i]);
         }
         for (int i = 0; i < writersNum; i++) {
             pthread_join(threads[i], nullptr);
@@ -32,10 +33,12 @@ void Tester::CheckWriters(SetType setType, TestType testType, int writersNum, in
         auto endTime = clock();
         time += endTime - startTime;
         for (auto& array: items) {
-            if (!checkAllItems(set, array))
-                std::cout << "NOT PASSED" << std::endl;
-            else
-                std::cout << "PASSED" << std::endl;
+            if (!checkAllItems(set, array)) {
+                std::cout << "NOT PASSED " << "at iteration #" << j  << std::endl;
+            }
+            else {
+                //std::cout << "PASSED "<< std::endl;
+            }
         }
         delete set;
     }
@@ -47,19 +50,24 @@ void Tester::CheckReaders(SetType setType, TestType testType, int readersNum, in
     long time = 0;
     std::vector<pthread_t> threads(readersNum);
     std::vector<bool> found;
+    pthread_mutex_t mutex;
+    if (pthread_mutex_init(&mutex, nullptr) != 0)
+        throw std::runtime_error("error in found array's mutex initializing");
+
     for (int j = 0; j < REPEAT_TIMES; ++j) {
         auto set = CreateSet(setType);
         auto items = GenerateData(testType, readersNum, readingNum);
         int itemsNum = 0;
         for (auto const& arr : items) {
             addToSet(set, arr);
-            itemsNum += static_cast<int>(items.size());
+            itemsNum += static_cast<int>(arr.size());
         }
         found = std::vector<bool>(itemsNum, false);
+        std::vector<ReaderArgs> argsArr(readersNum);
         auto startTime = clock();
         for (int i = 0; i < readersNum; i++) {
-            auto args = CreateReaderArgs(items, i, set, found);
-            pthread_create(&threads[i], nullptr, asyncRead, &args);
+            argsArr[i] = CreateReaderArgs(items, i, set, found, mutex);
+            pthread_create(&threads[i], nullptr, asyncRead, &argsArr[i]);
         }
         for (int i = 0; i < readersNum; i++) {
             pthread_join(threads[i], nullptr);
@@ -68,18 +76,23 @@ void Tester::CheckReaders(SetType setType, TestType testType, int readersNum, in
         time += endTime - startTime;
         for (size_t i = 0; i < found.size(); ++i) {
             if (!found[i]) {
-                std::cout << "NOT PASSED" << std::endl;
+                std::cout << "NOT PASSED " << "at iteration #" << j << " element was not found at pos " << i << std::endl;
                 break;
             }
             else if (i + 1 == found.size()) {
-                if (set->isEmpty())
-                    std::cout << "PASSED" << std::endl;
-                else
-                    std::cout << "NOT PASSED" << std::endl;
+                if (set->isEmpty()) {
+                    //std::cout << "PASSED" << std::endl;
+                }
+                else {
+                    std::cout << "NOT PASSED " << "at iteration #" << j << " set is not empty" << std::endl;
+                }
             }
         }
         delete set;
     }
+    if (pthread_mutex_destroy(&mutex) != 0)
+        throw std::runtime_error("error in found array's mutex destroying");
+
     std::cout << "time = " << time / (double)REPEAT_TIMES << std::endl;
 }
 
@@ -92,20 +105,32 @@ void Tester::CheckReadersWriters(SetType setType, TestType testType, int writers
     std::vector<pthread_t> readers(readersNum);
     std::vector<pthread_t> writers(writersNum);
     long time = 0;
+    pthread_mutex_t mutex;
+    if (pthread_mutex_init(&mutex, nullptr) != 0)
+        throw std::runtime_error("error in found array's mutex initializing");
+
     for (int j = 0; j < REPEAT_TIMES; ++j) {
         auto set = CreateSet(setType);
-        auto items = GenerateData(testType, writersNum, writingNum);
+        std::vector<std::vector<int>> items;
+        try {
+             items = GenerateData(testType, writersNum, writingNum);
+        }
+        catch (std::runtime_error& err) {
+            std::cout << err.what() << std::endl;
+            continue;
+        }
         int itemsNum = 0;
         for (auto const& arr : items) {
             addToSet(set, arr);
-            itemsNum += static_cast<int>(items.size());
+            itemsNum += static_cast<int>(arr.size());
         }
         found = std::vector<bool>(itemsNum, false);
-
+        std::vector<ReaderArgs> readerArgsArr(readersNum);
+        std::vector<WriterArgs> writerArgsArr(writersNum);
         auto startTime = clock();
         for (int i = 0; i < writersNum; i++) {
-            auto args = CreateWriterArgs(items, i, set);
-            pthread_create(&writers[i], nullptr, asyncWrite, &args);
+            writerArgsArr[i] = CreateWriterArgs(items, i, set);
+            pthread_create(&writers[i], nullptr, asyncWrite, &writerArgsArr[i]);
         }
         for (int i = 0; i < writersNum; i++) {
             pthread_join(writers[i], nullptr);
@@ -113,8 +138,8 @@ void Tester::CheckReadersWriters(SetType setType, TestType testType, int writers
 
         reshape(items, readersNum);
         for (int i = 0; i < readersNum; i++) {
-            auto args = CreateReaderArgs(items, i, set, found);
-            pthread_create(&readers[i], nullptr, asyncRead, &args);
+            readerArgsArr[i] = CreateReaderArgs(items, i, set, found, mutex);
+            pthread_create(&readers[i], nullptr, asyncRead, &readerArgsArr[i]);
         }
         for (int i = 0; i < readersNum; i++) {
             pthread_join(readers[i], nullptr);
@@ -123,18 +148,24 @@ void Tester::CheckReadersWriters(SetType setType, TestType testType, int writers
         time += endTime - startTime;
         for (size_t i = 0; i < found.size(); ++i) {
             if (!found[i]) {
-                std::cout << "NOT PASSED" << std::endl;
+                std::cout << "NOT PASSED " << "at iteration #" << j << " element was not found at pos " << i << std::endl;
+                std::cout << itemsNum << " items num" << std::endl;
                 break;
             }
             else if (i + 1 == found.size()) {
-                if (set->isEmpty())
-                    std::cout << "PASSED" << std::endl;
-                else
-                    std::cout << "NOT PASSED" << std::endl;
+                if (set->isEmpty()) {
+                    //std::cout << "PASSED" << std::endl;
+                }
+                else {
+                    std::cout << "NOT PASSED " << "at iteration #" << j << " set is not empty" << std::endl;
+                }
             }
         }
         delete set;
     }
+    if (pthread_mutex_destroy(&mutex) != 0)
+        throw std::runtime_error("error in found array's mutex destroying");
+
     std::cout << "time = " << time / (double)REPEAT_TIMES << std::endl;
 }
 
@@ -142,16 +173,28 @@ std::vector<std::vector<int>> Tester::GenerateData(TestType testType, int arrays
     std::vector<std::vector<int>> result(arraysNum);
     switch (testType) {
         case RANDOM_TEST_TYPE: {
+            std::set<int> items;
             std::random_device rd;
             std::mt19937 rng(rd());
             std::uniform_int_distribution<int> uni(MIN_SET_VALUE, MAX_SET_VALUE);
+            int elementsPermitted = 0;
             for (int i = 0; i < arraysNum; ++i) {
-                std::vector<int> items(itemsNum);
-                for (int j = 0; j < itemsNum; ++j)
-                    items[j] = uni(rng);
-                std::set<int> s( items.begin(), items.end() );
-                items.assign( s.begin(), s.end() );
-                result[i] = items;
+                elementsPermitted += itemsNum;
+                int j = 0;
+                while (static_cast<int>(items.size()) < elementsPermitted && j < MAX_GENERATING_ATTEMPTS) {
+                    items.insert(uni(rng));
+                    ++j;
+                }
+                if (static_cast<int>(items.size()) < elementsPermitted)
+                    throw std::runtime_error("Can not generate data");
+            }
+            auto begin = items.begin(), end = items.begin();
+            std::advance (end, itemsNum);
+            for (int i = 0; i < arraysNum; ++i) {
+                std::vector<int> arr(begin, end);
+                result[i] = arr;
+                begin = end;
+                std::advance (end, itemsNum);
             }
             break;
         }
@@ -175,7 +218,7 @@ AsyncSet<int> *Tester::CreateSet(Tester::SetType setType) {
         case COARSE_SET_TYPE:
             return new CoarseGrainedSet<int>();
         case OPTIMISTIC_SET_TYPE:
-            return new OptimisticSyncSet<int>();
+            return new OptimisticSyncSet<int>(std::numeric_limits<int>::min());
         default:
             return nullptr;
     }
@@ -184,20 +227,43 @@ AsyncSet<int> *Tester::CreateSet(Tester::SetType setType) {
 void *Tester::asyncWrite(void *writerArgs) {
     auto *args = (WriterArgs *)writerArgs;
     for (size_t i = 0; i < args->itemsToWrite.size(); ++i) {
-        args->set->add(args->itemsToWrite[i]);
+        for (int n = 0; n < OPERATION_ATTEMTS_NUM; ++n) {
+            if (args->set->add(args->itemsToWrite[i])) {
+                //std::cout << "Item " << args->itemsToWrite[i] << " added" << std::endl;
+                break;
+            }
+        }
     }
     return nullptr;
 }
 
 void *Tester::asyncRead(void *readerArgs) {
     auto *args = (ReaderArgs *) readerArgs;
-    for (size_t i = 0, foundPos = args->foundPos; i < args->readedItems.size(); ++i, ++foundPos) {
-        if (args->set->contain(args->readedItems[i])) {
-            args->found->at(foundPos) = true;
+    for (size_t i = 0; i < args->readedItems.size(); ++i) {
+        bool isRemoved = false;
+        for (int n = 0; n < OPERATION_ATTEMTS_NUM; ++n) {
+            if (args->set->contain(args->readedItems[i])) {
+                pthread_mutex_lock(args->mutex);
+                args->found->at(args->foundPos + i) = true;
+                pthread_mutex_unlock(args->mutex);
+                //std::cout << "Item " << args->readedItems[i] << " readed" << std::endl;
+                isRemoved = false;
+                for (int m = 0; m < OPERATION_ATTEMTS_NUM; ++m) {
+                    if (args->set->remove(args->readedItems[i])) {
+                        isRemoved = true;
+                        break;
+                    }
+                }
+                if (!isRemoved) {
+                    throw std::runtime_error("Error in writer: can not remove item");
+                }
+                break;
+            }
         }
-        if (!args->set->remove(args->readedItems[i])) {
-            throw std::runtime_error("Error in writer: can not remove item");
+        if (!isRemoved) {
+            throw std::runtime_error("Error in writer: item was not found");
         }
+        //std::cout << "Item " << args->readedItems[i] << " removed" << std::endl;
     }
     return nullptr;
 }
@@ -206,7 +272,6 @@ Tester::WriterArgs Tester::CreateWriterArgs(std::vector<std::vector<int>> const&
                                             AsyncSet<int> *set) {
     auto args = Tester::WriterArgs();
     args.itemsToWrite = items[threadIdx];
-    args.threadId = threadIdx;
     args.set = set;
     return args;
 }
@@ -221,11 +286,11 @@ bool Tester::checkAllItems(AsyncSet<int> *set,  std::vector<int> const& array) {
 
 Tester::ReaderArgs
 Tester::CreateReaderArgs(const std::vector<std::vector<int>> &items, int threadIdx, AsyncSet<int> *set,
-                         std::vector<bool> &found) {
+                         std::vector<bool> &found, pthread_mutex_t& mutex) {
     auto args = Tester::ReaderArgs();
     args.readedItems = items[threadIdx];
     args.set = set;
-    args.threadId = threadIdx;
+    args.mutex = &mutex;
     int counter = 0;
     for (int i = 0; i < threadIdx; ++i)
         counter += items[i].size();
@@ -255,7 +320,7 @@ void Tester::reshape(std::vector<std::vector<int>> &items, int arraysNum, int it
     for(int n = 0; n < arraysNum; ++n) {
         std::vector<int> arr(itemsNum);
         for (int j = 0; j < itemsNum; ++j) {
-            if (items[k].size() >= i) {
+            if (items[k].size() <= i) {
                 ++k;
                 i = 0;
             }

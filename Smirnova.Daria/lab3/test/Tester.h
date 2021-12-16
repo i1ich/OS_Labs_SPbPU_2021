@@ -33,26 +33,28 @@ private:
     struct WriterArgs {
         AsyncSet<int>* set;
         std::vector<int> itemsToWrite;
-        int threadId;
     };
     struct ReaderArgs {
         AsyncSet<int>* set;
         std::vector<int> readedItems;
-        int threadId;
+        pthread_mutex_t* mutex;
+        TestType testType;
         int foundPos;
         std::vector<bool>* found;
     };
 
     static WriterArgs CreateWriterArgs(std::vector<std::vector<int>> const& items, int threadIdx, AsyncSet<int> *set);
     static ReaderArgs CreateReaderArgs(std::vector<std::vector<int>> const& items, int threadIdx, AsyncSet<int> *set,
-                                       std::vector<bool>& found);
+                                       std::vector<bool>& found, pthread_mutex_t& mutex);
 
     static void* asyncWrite(void* writerArgs);
     static void* asyncRead(void* readerArgs);
 
-    static const int REPEAT_TIMES = 100;
+    static const int REPEAT_TIMES = 1000;
     static const int MIN_SET_VALUE = 0;
     static const int MAX_SET_VALUE = 1000;
+    static const int OPERATION_ATTEMTS_NUM = 20;
+    static const int MAX_GENERATING_ATTEMPTS = 1000;
 };
 
 
