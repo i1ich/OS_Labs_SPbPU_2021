@@ -137,7 +137,6 @@ int Goat::run() {
             }
 
             syslog(LOG_INFO, "Client read status %i", (int)message.goat_status);
-            syslog(LOG_INFO, "Client read number %lu", message.goat_number);
 
             is_alive = message.goat_status;
         }
