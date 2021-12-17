@@ -32,6 +32,8 @@ void Tests::CheckWriters(SetType setType, TestType testType, int writersNum, int
         for (auto& array: items) {
             if (!checkAllItems(set, array)) {
                 std::cout << "NOT PASSED " << "at iteration #" << j  << std::endl;
+                delete set;
+                return;
             }
         }
         delete set;
@@ -71,11 +73,14 @@ void Tests::CheckReaders(SetType setType, TestType testType, int readersNum, int
         for (size_t i = 0; i < found.size(); ++i) {
             if (!found[i]) {
                 std::cout << "NOT PASSED " << "at iteration #" << j << " element was not found at pos " << i << std::endl;
-                break;
+                delete set;
+                return;
             }
             else if (i + 1 == found.size()) {
                 if (!set->empty()) {
                     std::cout << "NOT PASSED " << "at iteration #" << j << " set is not empty" << std::endl;
+                    delete set;
+                    return;
                 }
             }
         }
@@ -90,6 +95,10 @@ void Tests::CheckReaders(SetType setType, TestType testType, int readersNum, int
 void Tests::CheckReadersWriters(SetType setType, TestType testType, int writersNum, int writingNum, int readersNum,
                                  int readingNum) {
     std::cout << "Total test:" << std::endl;
+    if (readersNum * readingNum != writersNum * writingNum) {
+        std:: cout << "Should be readersNum * readingNum  = writersNum * writingNum" << std::endl;
+        return;
+    }
     std::vector<bool> found;
     std::vector<pthread_t> readers(readersNum);
     std::vector<pthread_t> writers(writersNum);
@@ -138,12 +147,14 @@ void Tests::CheckReadersWriters(SetType setType, TestType testType, int writersN
         for (size_t i = 0; i < found.size(); ++i) {
             if (!found[i]) {
                 std::cout << "NOT PASSED " << "at iteration #" << j << " element was not found at pos " << i << std::endl;
-                std::cout << itemsNum << " items num" << std::endl;
-                break;
+                delete set;
+                return;
             }
             else if (i + 1 == found.size()) {
                 if (!set->empty()) {
                     std::cout << "NOT PASSED " << "at iteration #" << j << " set is not empty" << std::endl;
+                    delete set;
+                    return;
                 }
             }
         }
@@ -203,8 +214,6 @@ Set *Tests::CreateSet(Tests::SetType setType) {
     switch (setType) {
         case SET_FINE:
             return new SetFine();
-        case SET_OPT:
-            return new SetOpt();
         default:
             return nullptr;
     }
