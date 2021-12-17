@@ -1,7 +1,7 @@
 #include "host.h"
 
 
-size_t const default_n_clients = 50;
+size_t const default_n_clients = 5;
 
 int main(int argc, char** argv) 
 {

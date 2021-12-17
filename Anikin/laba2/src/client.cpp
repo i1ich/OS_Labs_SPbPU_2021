@@ -1,5 +1,8 @@
 #include <syslog.h>
 #include <iostream>
+#include <time.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include "client.h"
 #include "conn.h"
 
@@ -12,7 +15,9 @@ void lab::client_main(size_t id)
     lab::connaction conn;
     if (conn.open(id, lab::CONN_MODE::CLIENT) != 0)
         return;
-    
+
+    srand((unsigned int)((id * time(NULL)) % (uint64_t)(getpid())));
+       
     size_t const n = 2;
     bool res[] = {true, false};
     int num;

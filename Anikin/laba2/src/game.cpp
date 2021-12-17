@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <memory>
 #include <syslog.h>
+#include <unistd.h>
 #include "game.h"
 #include "conn.h"
 
@@ -160,6 +161,9 @@ int lab::wolf::start_game()
 {
     if (_args_blocks.size() == 0)
         return -1;
+
+    srand(getpid());
+
 
     synchronizer::inst().lock()->set_n_clients(_args_blocks.size());
 
