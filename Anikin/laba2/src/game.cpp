@@ -169,7 +169,7 @@ int lab::wolf::start_game()
 
     size_t dead_step = 0; // number of step, when all goatlings dead in a row
 
-    for(size_t i = 0; i < 100 && dead_step < 2; i++){
+    for(size_t i = 0; i < 3 && dead_step < 2; i++){
         synchronizer::inst().lock()->wait_exchange();
 
         if (game_step())
@@ -196,7 +196,7 @@ bool lab::wolf::game_step()
 
     for (auto& goatling: _args_blocks){
 
-        std::cout << "goal_" << goatling._id << " num " << goatling._num << std::endl;
+        std::cout << "goat_" << goatling._id << " num " << goatling._num << " status " << goatling._status << std::endl;
 
         if (goatling._status && !hid(num, goatling._num, n_goatls))
             goatling._status = false;
@@ -205,6 +205,8 @@ bool lab::wolf::game_step()
         if (goatling._status)
             all_dead = false;
     }
+
+    std::cout << std::endl;
     
     return all_dead;
 }
