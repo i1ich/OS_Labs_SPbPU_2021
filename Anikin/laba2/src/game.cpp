@@ -195,15 +195,15 @@ bool lab::wolf::game_step()
     bool all_dead = true;
 
     for (auto& goatling: _args_blocks){
-
-        std::cout << "goat_" << goatling._id << " num " << goatling._num << " status " << goatling._status << std::endl;
-
         if (goatling._status && !hid(num, goatling._num, n_goatls))
             goatling._status = false;
         else if(!goatling._status && resurrected(num, goatling._num, n_goatls))
             goatling._status = true;
         if (goatling._status)
             all_dead = false;
+
+        std::cout << "goat_" << goatling._id << " num " << goatling._num << " status " << goatling._status << std::endl;
+
     }
 
     std::cout << std::endl;
