@@ -2,7 +2,6 @@
 #define LAB3_VAR2_TESTER_H
 
 #include "set.h"
-#include "setOpt.h"
 #include "setFine.h"
 
 class Tests {
