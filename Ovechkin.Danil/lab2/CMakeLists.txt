@@ -5,24 +5,21 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_COMPILER g++)
 add_compile_options(-Wall -Werror)
 
-set(HOST_SRC host)
-set(CLIENT_SRC client)
-set(CONN conn)
-set(SETTINGS settings)
+file(GLOB CONNS conn/conn_*.cpp)
+file(GLOB HOST host/*.cpp host/*.h)
+file(GLOB CLIENT client/*.cpp client/*.h)
+file(GLOB SETTING settings/*.h settings/*.cpp)
 
-separate_arguments(CONN_TYPES)
+foreach(CONN_PATH ${CONNS})
+    get_filename_component(FILE_NAME ${CONN_PATH} NAME_WLE)
+    string(REGEX REPLACE "conn_" "" TYPE_MODE ${FILE_NAME})
 
-foreach(TYPE_MODE ${CONN_TYPES})
-    message(${TYPE_MODE})
-    add_executable(client_${TYPE_MODE} ${CLIENT_SRC}/client.cpp ${CLIENT_SRC}/goat.cpp ${CLIENT_SRC}/goat.h
-            ${CONN}/conn.h ${CONN}/${CONN}_${TYPE_MODE}.cpp ${CONN}/${CONN}_${TYPE_MODE}.h
-            ${SETTINGS}/GameSettings.h)
+    add_executable(client_${TYPE_MODE} ${CLIENT} ${SETTINGS} conn/conn.h
+            conn/conn_${TYPE_MODE}.cpp conn/conn_${TYPE_MODE}.h)
 
-    add_executable(host_${TYPE_MODE} ${HOST_SRC}/host.cpp ${HOST_SRC}/wolf.cpp ${HOST_SRC}/wolf.h
-            ${CONN}/conn.h ${CONN}/${CONN}_${TYPE_MODE}.cpp ${CONN}/${CONN}_${TYPE_MODE}.h
-            ${SETTINGS}/GameSettings.h)
+    add_executable(host_${TYPE_MODE} ${HOST} ${SETTINGS} conn/conn.h
+            conn/conn_${TYPE_MODE}.cpp conn/conn_${TYPE_MODE}.h)
 
-    target_link_libraries("client_${TYPE_MODE}" rt pthread)
-    target_link_libraries("host_${TYPE_MODE}" rt pthread)
-
+    target_link_libraries(client_${TYPE_MODE} rt pthread)
+    target_link_libraries(host_${TYPE_MODE} rt pthread)
 endforeach()

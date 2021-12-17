@@ -2,7 +2,7 @@
 
 mkdir "build"
 
-cmake -S ./ -B build -D CONN_TYPES="$1"
+cmake -S ./ -B build
 
 cd build
 
