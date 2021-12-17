@@ -3,6 +3,7 @@
 #include <syslog.h>
 #include <errno.h>
 #include <cstring>
+#include <sys/wait.h>
 #include "host.h"
 #include "client.h"
 
@@ -11,7 +12,12 @@ std::shared_ptr<lab::host> lab::host::_inst = nullptr;
 
 lab::host::host()
 {
-    openlog("m_ipc", LOG_NDELAY | LOG_PID, LOG_USER);
+    openlog("m_ipc", LOG_NDELAY | LOG_PID | LOG_PERROR, LOG_USER);
+}
+
+lab::host::~host()
+{
+    closelog(); 
 }
 
 std::weak_ptr<lab::host> lab::host::inst()
@@ -24,12 +30,10 @@ std::weak_ptr<lab::host> lab::host::inst()
 
 int lab::host::init(size_t n_clients)
 {
-    if (_thr_pool.size() != 0 || _pid_pool.size() != 0 || n_clients == 0){
+    if (_pid_pool.size() != 0 || n_clients == 0){
         syslog(LOG_ERR, "host init error");
         return -1;
     }
-    _thr_pool.resize(n_clients);
-    _pid_pool.resize(n_clients);
 
     for (size_t id = 0; id < n_clients; id++){
         pid_t pid = -1;
@@ -47,6 +51,7 @@ int lab::host::init(size_t n_clients)
         default:
             if (_wolf.add_id(id) != 0)
                 syslog(LOG_ERR, "invalide id %i", static_cast<int>(id));
+            _pid_pool.push_back(pid);
             break;
         }
     }
@@ -55,6 +60,19 @@ int lab::host::init(size_t n_clients)
 
 int lab::host::run()
 {
+    auto rv = _wolf.start_game();
 
-    return _wolf.start_game();
+    int prv = 0;
+    
+    while (_pid_pool.size() != 0){
+        auto pid = wait(&prv);
+        if (pid == -1){
+            syslog(LOG_ERR, "childe proc return -1: %s", strerror(errno));
+            return -1;
+        }
+        else
+            _pid_pool.erase(std::find(_pid_pool.begin(), _pid_pool.end(), pid));
+    }
+
+    return rv;
 }

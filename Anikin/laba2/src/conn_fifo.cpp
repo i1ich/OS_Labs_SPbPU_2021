@@ -109,12 +109,14 @@ int lab::connaction::write(void* buf, size_t buf_size)
 
 int lab::connaction::close()
 {
-    if (::close(_fd_data->_out_fd) == -1 || ::close(_fd_data->_in_fd) == -1){
-        syslog(LOG_ERR, "close error: %s", strerror(errno));
-        return -1;
+    if (_fd_data->_in_fd != -1 && _fd_data->_out_fd != -1){
+        if (::close(_fd_data->_out_fd) == -1 || ::close(_fd_data->_in_fd) == -1){
+            syslog(LOG_ERR, "close error: %s", strerror(errno));
+            return -1;
+        }
+        _fd_data->_out_fd = -1;
+        _fd_data->_in_fd = -1;
     }
-    _fd_data->_out_fd = -1;
-    _fd_data->_in_fd = -1;
 
     if (_fd_data->_mode == CONN_MODE::HOST){
         remove(_fd_data->_in_name.c_str());

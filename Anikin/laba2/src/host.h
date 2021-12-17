@@ -1,7 +1,6 @@
 #pragma once
 #include <stddef.h>
 #include <memory>
-#include <pthread.h>
 #include <vector>
 #include "game.h"
 
@@ -16,6 +15,8 @@ namespace lab{
 
         int run();
 
+        ~host();
+
     private:
 
         host();
@@ -23,8 +24,6 @@ namespace lab{
         host(host const&) = delete;
         
         host& operator=(host const&) = delete;
-
-        std::vector<pthread_t> _thr_pool;
 
         std::vector<pid_t> _pid_pool;
 
