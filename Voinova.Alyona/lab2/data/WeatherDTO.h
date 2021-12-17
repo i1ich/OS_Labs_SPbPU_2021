@@ -14,7 +14,7 @@ private:
     int _temperature;
 
 public:
-    WeatherDTO(const unsigned int day, const unsigned int month, const unsigned int year) :
+    WeatherDTO(const unsigned int day = 0, const unsigned int month = 0, const unsigned int year = 0) :
             _day{day}, _month{month}, _year{year}, _temperature{0} {};
 
     int getTemp() const;

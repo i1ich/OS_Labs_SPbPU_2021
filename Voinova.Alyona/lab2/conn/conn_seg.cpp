@@ -26,11 +26,11 @@ void IConn::openConn(size_t id, bool create) {
 void IConn::writeConn(WeatherDTO *buf, size_t size) const {
     WeatherDTO *shm_buf = (WeatherDTO*) shmat(_id, nullptr, 0);
     if(shm_buf == (WeatherDTO*) -1){
-        throw std::runtime_error("writting failed, error " + std::string(strerror(errno)));
+        throw std::runtime_error("writing failed, error " + std::string(strerror(errno)));
     }
     memcpy(shm_buf, buf, size);
     if(shmdt(shm_buf) == -1) {
-        throw std::runtime_error("writting failed, error " + std::string(strerror(errno)));
+        throw std::runtime_error("writing failed, error " + std::string(strerror(errno)));
     }
 }
 
@@ -47,6 +47,6 @@ void IConn::readConn(WeatherDTO *buf, size_t size) const {
 
 void IConn::closeConn() {
     if(_owner && shmctl(_id, IPC_RMID, nullptr) < 0){
-        throw std::runtime_error("clode failed, error " + std::string(strerror(errno)));
+        throw std::runtime_error("close failed, error " + std::string(strerror(errno)));
     }
 }

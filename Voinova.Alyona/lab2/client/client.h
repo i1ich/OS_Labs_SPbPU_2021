@@ -8,30 +8,38 @@
 #include <csignal>
 #include <semaphore.h>
 #include <map>
-//#include <IConnection.h>
+#include "../conn/IConn.h"
+#include "../stuff/ClientInfo.h"
 
 class Client {
 public:
-    Client(Client &) = delete;
-    Client(const Client &) = delete;
-    Client &operator=(const Client &) = delete;
-
-    static  Client &getInstance(int host_pid);
+    static  Client &getInstance();
 
     void run();
     void openConnection();
     void terminate();
 
-private:
-    //IConnection connection;
-    sem_t *sem_host;
-    sem_t *sem_client;
-    int host_pid;
-    bool isValid = true;
+    void setHostPid(int hostPid);
 
-    explicit Client(int host_pid);
+private:
+    static Client _instance;
+
+    IConn _connection;
+    sem_t *_sem_host;
+    sem_t *_sem_client;
+    int _host_pid;
+
+    bool _isRunning = true;
+
+    explicit Client();
     int getWeather();
-    static void handleSignel(int signum);
+    static void handleSignal(int signum);
+
+    int getWeather(const WeatherDTO &dto);
+
+    Client(Client &) = delete;
+    Client(const Client &) = delete;
+    Client &operator=(const Client &) = delete;
 };
 
 

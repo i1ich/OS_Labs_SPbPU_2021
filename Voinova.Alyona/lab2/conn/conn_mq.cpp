@@ -11,7 +11,7 @@
 
 void IConn::openConn(size_t id, bool create) {
     _owner = create;
-    _name = "tmp/lab2_mq";
+    _name = "/lab2_mq";
     _id = -1;
 
     if (_owner) {
