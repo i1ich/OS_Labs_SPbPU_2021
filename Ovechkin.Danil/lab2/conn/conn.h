@@ -6,13 +6,17 @@
 class Conn {
 public:
 
-    bool open(size_t hostPid, bool isCreator);
+    static Conn* createConnection();
 
-    bool read(void* buf, size_t count);
+    virtual bool open(size_t hostPid, bool isCreator) = 0;
 
-    bool write(void* buf, size_t count);
+    virtual bool read(void* buf, size_t count) = 0;
 
-    bool close();
+    virtual bool write(void* buf, size_t count) = 0;
+
+    virtual bool close() = 0;
+
+    virtual ~Conn() = default;
 
     enum class MSG_TYPE
     {
@@ -25,15 +29,6 @@ public:
         int data;
     };
 
-private:
-
-    bool _isCreator;
-
-    std::string _hostName;
-
-    int fd;
-
-    void* shm;
 };
 
 #endif //LAB2_CONN_H

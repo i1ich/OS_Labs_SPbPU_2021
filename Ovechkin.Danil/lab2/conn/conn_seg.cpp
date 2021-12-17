@@ -1,6 +1,10 @@
-#include "conn.h"
+#include "conn_seg.h"
 
-bool Conn::open(size_t hostPid, bool isCreator) {
+Conn* Conn::createConnection() {
+    return new ConnSeg();
+}
+
+bool ConnSeg::open(size_t hostPid, bool isCreator) {
     _isCreator = isCreator;
     int shmflag = 0666;
 
@@ -19,7 +23,7 @@ bool Conn::open(size_t hostPid, bool isCreator) {
     return true;
 }
 
-bool Conn::read(void* buf, size_t count) {
+bool ConnSeg::read(void* buf, size_t count) {
 
     Msg* msg = (Msg*)shmat(fd, nullptr, 0);
 
@@ -36,7 +40,7 @@ bool Conn::read(void* buf, size_t count) {
     return true;
 }
 
-bool Conn::write(void* buf, size_t count) {
+bool ConnSeg::write(void* buf, size_t count) {
 
     Msg* ptr = (Msg *)shmat(fd, nullptr, 0);
 
@@ -53,7 +57,7 @@ bool Conn::write(void* buf, size_t count) {
     return true;
 }
 
-bool Conn::close() {
+bool ConnSeg::close() {
 
     if (_isCreator && shmctl(fd, IPC_RMID, nullptr) < 0) {
 

@@ -1,6 +1,10 @@
-#include "conn.h"
+#include "conn_fifo.h"
 
-bool Conn::open(size_t hostPid, bool isCreator) {
+Conn* Conn::createConnection() {
+    return new ConnFifo();
+}
+
+bool ConnFifo::open(size_t hostPid, bool isCreator) {
     _isCreator = isCreator;
     _hostName = std::string("/tmp/named_pipe" + std::to_string(hostPid));
 
@@ -27,7 +31,7 @@ bool Conn::open(size_t hostPid, bool isCreator) {
     return true;
 }
 
-bool Conn::read(void* buf, size_t count) {
+bool ConnFifo::read(void* buf, size_t count) {
 
     if (::read(fd, buf, count) == -1) {
 
@@ -38,7 +42,7 @@ bool Conn::read(void* buf, size_t count) {
     return true;
 }
 
-bool Conn::write(void* buf, size_t count) {
+bool ConnFifo::write(void* buf, size_t count) {
 
     if (::write(fd, buf, count) == -1) {
 
@@ -49,7 +53,7 @@ bool Conn::write(void* buf, size_t count) {
     return true;
 }
 
-bool Conn::close() {
+bool ConnFifo::close() {
 
     if (::close(fd) < 0 || (_isCreator && unlink(_hostName.c_str()) == -1)) {
 

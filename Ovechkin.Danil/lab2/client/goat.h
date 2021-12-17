@@ -27,15 +27,13 @@ private:
 
     int isAlive() { return _goatState == GOAT_STATE::ALIVE; }
 
-    bool semWait(sem_t* sem);
-    bool semSignal(sem_t* sem);
-    void connectToSem(sem_t** sem, std::string semName);
+    bool waitForHost(sem_t* sem);
 
     static void onSignalReceive(int sig);
 
     static Goat instance;
 
-    Conn _conn;
+    Conn* _conn;
     sem_t* _semHost;
     sem_t* _semClient;
     int _hostPid = -1;

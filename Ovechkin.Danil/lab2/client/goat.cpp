@@ -19,7 +19,7 @@ Goat::~Goat() {
         sem_close(_semClient);
     }
 
-    if (!_conn.close()) {
+    if (!_conn->close()) {
 
         exit(errno);
     }
@@ -31,12 +31,14 @@ Goat::~Goat() {
 
 void Goat::prepareGame() {
 
+    _conn = Conn::createConnection();
+
     if (_hostPid == -1) {
 
         throw std::runtime_error("Host pid isn't setted");
     }
 
-    if (!_conn.open(_hostPid, false)) {
+    if (!_conn->open(_hostPid, false)) {
 
         exit(errno);
     }
@@ -46,14 +48,14 @@ void Goat::prepareGame() {
     std::string semHostName = std::string("host_" + std::to_string(_hostPid));
     std::string semClientName = std::string("client_" + std::to_string(_hostPid));
 
-    connectToSem(&_semHost, semHostName);
+    _semHost = sem_open(semHostName.c_str(), 0);
 
     if (_semHost == SEM_FAILED) {
 
         throw std::runtime_error("sem_host wasn't opened");
     }
 
-    connectToSem(&_semClient, semClientName);
+    _semClient = sem_open(semClientName.c_str(), 0);
 
     if (_semClient == SEM_FAILED) {
 
@@ -77,15 +79,13 @@ void Goat::startGame() {
         return;
     }
 
-    if (!semSignal(_semHost)) {
-        return;
-    }
+    sem_post(_semHost);
 
     while (true) {
 
         std::cout << "___________GAME_STEP___________" << std::endl;
 
-        if (!semWait(_semClient)) {
+        if (!waitForHost(_semClient)) {
 
             return;
         }
@@ -93,7 +93,7 @@ void Goat::startGame() {
         Conn::Msg msg;
         memset(&msg, 0, sizeof(msg));
 
-        if (!_conn.read(&msg, sizeof(msg))) {
+        if (!_conn->read(&msg, sizeof(msg))) {
 
             return;
         }
@@ -105,10 +105,7 @@ void Goat::startGame() {
             return;
         }
 
-        if (!semSignal(_semHost)) {
-
-            return;
-        }
+        sem_post(_semHost);
     }
 }
 
@@ -137,44 +134,25 @@ bool Goat::generateAndWriteValue() {
     msg.type = Conn::MSG_TYPE::TO_WOLF;
     msg.data = cur_val;
 
-    if (!_conn.write(&msg, sizeof(msg))) {
+    if (!_conn->write(&msg, sizeof(msg))) {
 
         return false;
     }
     return true;
 }
 
-bool Goat::semWait(sem_t* sem) {
+bool Goat::waitForHost(sem_t* sem) {
 
-    if (sem_wait(sem) == -1) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    ts.tv_sec += GAME_CONSTANTS::TIMEOUT;
 
-        perror("sem_timewait() ");
+    if (sem_timedwait(sem, &ts) == -1) {
+        syslog(LOG_ERR, "Semaphore timeout in client");
         return false;
     }
+
     return true;
-}
-
-bool Goat::semSignal(sem_t* sem) {
-
-    if (sem_post(sem) == -1) {
-
-        perror("sem_post() ");
-        return false;
-    }
-    return true;
-}
-
-void Goat::connectToSem(sem_t** sem, std::string sem_name) {
-
-    for (int i = 0; i < GAME_CONSTANTS::SEM_RECONNECT_TIMEOUT; i++) {
-
-        *sem = sem_open(sem_name.c_str(), 0);
-        if (*sem != SEM_FAILED) {
-
-            break;
-        }
-        sleep(1);
-    }
 }
 
 void Goat::onSignalReceive(int sig) {

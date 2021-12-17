@@ -24,7 +24,7 @@ Wolf::~Wolf() {
         sem_unlink(_semClientName.c_str());
     }
 
-    if (!_conn.close()) {
+    if (!_conn->close()) {
 
         exit(errno);
     }
@@ -37,12 +37,14 @@ Wolf::~Wolf() {
 
 void Wolf::prepareGame() {
 
+    _conn = Conn::createConnection();
+
     if (_hostPid == -1) {
 
         throw std::runtime_error("Host pid isn't setted");
     }
 
-    if (!_conn.open(_hostPid, true)) {
+    if (!_conn->open(_hostPid, true)) {
 
         exit(errno);
     }
@@ -91,13 +93,13 @@ void Wolf::startGame() {
 
         Conn::Msg msg;
 
-        if (!semWait(_pSemHost)) {
+        if (!waitForClient(_pSemHost)) {
             return;
         }
 
         std::cout << "___________GAME_STEP___________" << std::endl;
 
-        if (!_conn.read(&msg, sizeof(msg))) {
+        if (!_conn->read(&msg, sizeof(msg))) {
             return;
         }
 
@@ -140,16 +142,12 @@ void Wolf::startGame() {
 
         msg.type = Conn::MSG_TYPE::TO_GOAT;
         msg.data = static_cast<long>(_goatState);
-        if (!_conn.write(&msg, sizeof(msg))) {
+        if (!_conn->write(&msg, sizeof(msg))) {
 
             return;
         }
 
-        if (!semSignal(_pSemClient)) {
-
-            return;
-        }
-
+        sem_post(_pSemClient);
     }
 }
 
@@ -163,7 +161,7 @@ int Wolf::generateValue() {
 }
 
 
-bool Wolf::semWait(sem_t* sem) {
+bool Wolf::waitForClient(sem_t* sem) {
 
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
@@ -171,23 +169,13 @@ bool Wolf::semWait(sem_t* sem) {
 
     if (sem_timedwait(sem, &ts) == -1) {
 
-        perror("sem_timewait()");
+        syslog(LOG_ERR, "Semaphore timeout");
         return false;
     }
 
     return true;
 }
 
-
-bool Wolf::semSignal(sem_t* sem) {
-
-    if (sem_post(sem) == -1) {
-
-        perror("sem_post()");
-        return false;
-    }
-    return true;
-}
 
 void Wolf::handleSignal(int sig, siginfo_t* info, void* ptr) {
 

@@ -3,6 +3,8 @@
 
 #include "../conn/conn.h"
 #include "../settings/GameSettings.h"
+#include <filesystem>
+
 
 class Wolf {
 public:
@@ -22,7 +24,7 @@ private:
     Wolf& operator=(const Wolf& w) = delete;
 
     int generateValue();
-    bool semWait(sem_t* sem);
+    bool waitForClient(sem_t* sem);
     bool semSignal(sem_t* sem);
 
     static void handleSignal(int sig, siginfo_t* info, void* ptr);
@@ -30,7 +32,7 @@ private:
 
     static Wolf instance;
 
-    Conn _conn;
+    Conn* _conn;
     sem_t* _pSemHost;
     sem_t* _pSemClient;
 

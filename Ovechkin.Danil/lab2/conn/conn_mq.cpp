@@ -1,6 +1,10 @@
-#include "conn.h"
+#include "conn_mq.h"
 
-bool Conn::open(size_t hostPid, bool isCreator) {
+Conn* Conn::createConnection() {
+    return new ConnMq();
+}
+
+bool ConnMq::open(size_t hostPid, bool isCreator) {
     _isCreator = isCreator;
     _hostName = std::string("/lab2_conn_mq" + std::to_string(hostPid));
 
@@ -23,7 +27,7 @@ bool Conn::open(size_t hostPid, bool isCreator) {
 
 }
 
-bool Conn::read(void* buf, size_t count) {
+bool ConnMq::read(void* buf, size_t count) {
 
     if (mq_receive(fd, (char*)buf, count, 0) == -1) {
 
@@ -34,7 +38,7 @@ bool Conn::read(void* buf, size_t count) {
     return true;
 }
 
-bool Conn::write(void* buf, size_t count) {
+bool ConnMq::write(void* buf, size_t count) {
 
     if (mq_send(fd, (char*)buf, count, 0) == -1) {
 
@@ -45,7 +49,7 @@ bool Conn::write(void* buf, size_t count) {
     return true;
 }
 
-bool Conn::close() {
+bool ConnMq::close() {
 
     if (mq_close(fd) != 0) {
 
