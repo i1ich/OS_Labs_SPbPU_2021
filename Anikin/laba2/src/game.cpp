@@ -186,9 +186,14 @@ bool lab::wolf::game_step()
     int num = (std::rand() % wolf_max_number) + 1;
     int n_goatls = _args_blocks.size();
 
+    std::cout << "wolf num: " << num << std::endl;
+
     bool all_dead = true;
 
     for (auto& goatling: _args_blocks){
+
+        std::cout << "goal_" << goatling._id << " num " << goatling._num << std::endl;
+
         if (goatling._status && !hid(num, goatling._num, n_goatls))
             goatling._status = false;
         else if(!goatling._status && resurrected(num, goatling._num, n_goatls))
