@@ -1,9 +1,14 @@
-#include "conn.h"
+#include "conn_mq.h"
 #include "message.h"
 
 #include "../utils/logger.h"
 
-bool Conn::open(size_t hostPid, bool isOwner) {
+Conn *Conn::getConnection() {
+    static ConnMq connMq;
+    return &connMq;
+}
+
+bool ConnMq::open(size_t hostPid, bool isOwner) {
     Logger& logger = Logger::getInstance();
 
     _isOwner = isOwner;
@@ -30,7 +35,7 @@ bool Conn::open(size_t hostPid, bool isOwner) {
     return true;
 }
 
-bool Conn::read(void* buf, size_t count) {
+bool ConnMq::read(void* buf, size_t count) {
     Logger& logger = Logger::getInstance();
     bool answer = true;
     if (mq_receive(_desc, static_cast<char *>(buf), count, nullptr) == -1) {
@@ -40,7 +45,7 @@ bool Conn::read(void* buf, size_t count) {
     return answer;
 }
 
-bool Conn::write(void* buf, size_t count) {
+bool ConnMq::write(void* buf, size_t count) {
     Logger& logger = Logger::getInstance();
     bool answer = true;
     if (mq_send(_desc, static_cast<char *>(buf), count, 0) == -1) {
@@ -50,7 +55,7 @@ bool Conn::write(void* buf, size_t count) {
     return answer;
 }
 
-bool Conn::close() {
+bool ConnMq::close() {
     Logger& logger = Logger::getInstance();
     bool answer = true;
 

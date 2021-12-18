@@ -1,8 +1,13 @@
-#include "conn.h"
+#include "conn_sock.h"
 
 #include "../utils/logger.h"
 
-bool Conn::open(size_t hostPid, bool isOwner) {
+Conn *Conn::getConnection() {
+    static ConnSock connSock;
+    return &connSock;
+}
+
+bool ConnSock::open(size_t hostPid, bool isOwner) {
     Logger& logger = Logger::getInstance();
 
     _isOwner = isOwner;
@@ -51,7 +56,7 @@ bool Conn::open(size_t hostPid, bool isOwner) {
     return true;
 }
 
-bool Conn::write(void* buf, size_t count) {
+bool ConnSock::write(void* buf, size_t count) {
     Logger& logger = Logger::getInstance();
     bool answer = true;
     if(send(_sockets[1], buf, count, MSG_NOSIGNAL) < 0) {
@@ -62,7 +67,7 @@ bool Conn::write(void* buf, size_t count) {
 }
 
 
-bool Conn::read(void* buf, size_t count) {
+bool ConnSock::read(void* buf, size_t count) {
     Logger& logger = Logger::getInstance();
     bool answer = true;
     if(recv(_sockets[1], buf, count, 0) < 0) {
@@ -73,7 +78,7 @@ bool Conn::read(void* buf, size_t count) {
 }
 
 
-bool Conn::close() {
+bool ConnSock::close() {
     if (_isOwner) {
         ::close(_sockets[0]);
         ::close(_sockets[1]);

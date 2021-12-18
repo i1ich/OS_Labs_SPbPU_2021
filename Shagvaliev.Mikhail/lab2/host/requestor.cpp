@@ -30,7 +30,7 @@ Requestor::~Requestor() {
     if (_semClient != SEM_FAILED)
         sem_unlink(_semClientName.c_str());
 
-    if (!_conn.close())
+    if (!_conn->close())
         exit(errno);
 
     logger.logInfo("Requestor has been terminated");
@@ -73,7 +73,7 @@ bool Requestor::openConnection() {
     logger.logInfo("Start connection");
     logger.logInfo("My PID is " + std::to_string(_hostPid));
 
-    if (!_conn.open(_hostPid, true)) {
+    if (!_conn->open(_hostPid, true)) {
         logger.logError("Connection has not been opened");
         return false;
     }
@@ -106,7 +106,7 @@ bool Requestor::setUpWeatherPredictor() {
     srand(Definitions::HOST_RANDOM_SEED);
     Message initializerMessage = { rand(), -1, -1, -1, -1 };
 
-    if (!_conn.write(&initializerMessage, sizeof(initializerMessage))) {
+    if (!_conn->write(&initializerMessage, sizeof(initializerMessage))) {
         logger.logError("cannot write conn");
         return false;
     }
@@ -131,7 +131,7 @@ void Requestor::run() {
 
         Message requestMessage = { -1, 0, date.day, date.month, date.year };
 
-        if (!_conn.write(&requestMessage, sizeof(requestMessage))) {
+        if (!_conn->write(&requestMessage, sizeof(requestMessage))) {
             logger.logError("Cannot write conn");
             return;
         }
@@ -143,7 +143,7 @@ void Requestor::run() {
         if (!wait(_semHost)) return;
 
         Message predictionMessage;
-        if (!_conn.read(&predictionMessage, sizeof(predictionMessage))) {
+        if (!_conn->read(&predictionMessage, sizeof(predictionMessage))) {
             logger.logError("cannot read conn");
             return;
         }

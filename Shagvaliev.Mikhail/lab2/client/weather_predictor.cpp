@@ -27,7 +27,7 @@ WeatherPredictor::~WeatherPredictor() {
 
     kill(_hostPid, SIGUSR2);
 
-    if (!_conn.close())
+    if (!_conn->close())
         exit(errno);
 
     logger.logInfo("Weather predictor has been terminated");
@@ -38,7 +38,7 @@ bool WeatherPredictor::openConnection() {
     Logger& logger = Logger::getInstance();
     logger.logInfo("Starting connection");
 
-    if (!_conn.open(_hostPid, false)) {
+    if (!_conn->open(_hostPid, false)) {
         logger.logError("Connection not opened");
         return false;
     }
@@ -69,7 +69,7 @@ bool WeatherPredictor::initializeSeedBase() {
     if (!wait(_semClient)) return false;
 
     Message initializerMessage;
-    if (!_conn.read(&initializerMessage, sizeof(initializerMessage))) {
+    if (!_conn->read(&initializerMessage, sizeof(initializerMessage))) {
         logger.logError("cannot read conn");
         return false;
     }
@@ -93,7 +93,7 @@ void WeatherPredictor::run() {
     while (true) {
         if (!wait(_semClient)) return;
 
-        if (!_conn.read(&requestMessage, sizeof(requestMessage))) {
+        if (!_conn->read(&requestMessage, sizeof(requestMessage))) {
             logger.logError("cannot read conn");
             return;
         }
@@ -105,7 +105,7 @@ void WeatherPredictor::run() {
 
         Message predictionMessage = { -1, temperature, -1, -1, -1 };
 
-        if(!_conn.write(&predictionMessage, sizeof(predictionMessage))) {
+        if(!_conn->write(&predictionMessage, sizeof(predictionMessage))) {
             logger.logError("cannot write conn");
             return;
         }

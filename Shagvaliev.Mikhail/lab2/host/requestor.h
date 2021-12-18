@@ -37,7 +37,7 @@ private:
 
     std::vector<Date> dates;
 
-    Conn _conn;
+    Conn* _conn = Conn::getConnection();
 
     int _hostPid;
     int _clientPid;

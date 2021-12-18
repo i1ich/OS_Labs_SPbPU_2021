@@ -5,21 +5,22 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_COMPILER g++)
 add_compile_options(-Wall -Werror)
 
-set(HOST_SRC host)
-set(CLIENT_SRC client)
-set(conn conn)
-set(utils utils)
+file(GLOB CONNS conn/conn_*.h)
+file(GLOB HOST host/*.cpp host/*.h)
+file(GLOB CLIENT client/*.cpp client/*.h)
+file(GLOB UTILS utils/*.h)
+file(GLOB MSG conn/message.h)
 
-foreach(TYPE_MODE mq sock fifo)
-    add_executable(client_${TYPE_MODE} ${CLIENT_SRC}/client.cpp ${CLIENT_SRC}/weather_predictor.cpp ${CLIENT_SRC}/weather_predictor.h
-            ${CONN}/conn.h ${CONN}/${CONN}_${TYPE_MODE}.cpp
-            ${UTILS}/definitions.h ${UTILS}/definitions.h)
+foreach(CONN_PATH ${CONNS})
+    get_filename_component(FILE_NAME ${CONN_PATH} NAME_WLE)
+    string(REGEX REPLACE "conn_" "" TYPE_MODE ${FILE_NAME})
 
-    add_executable(host_${TYPE_MODE} ${HOST_SRC}/host.cpp ${HOST_SRC}/requestor.cpp ${HOST_SRC}/requestor.h
-            ${CONN}/conn.h ${CONN}/${CONN}_${TYPE_MODE}.cpp
-            ${UTILS}/definitions.h ${UTILS}/definitions.h)
+    add_executable(client_${TYPE_MODE} ${MSG} ${CLIENT} ${UTILS} conn/conn.h
+            conn/conn_${TYPE_MODE}.cpp conn/conn_${TYPE_MODE}.h)
+
+    add_executable(host_${TYPE_MODE} ${MSG} ${HOST} ${UTILS} conn/conn.h
+            conn/conn_${TYPE_MODE}.cpp conn/conn_${TYPE_MODE}.h)
 
     target_link_libraries(client_${TYPE_MODE} rt pthread)
     target_link_libraries(host_${TYPE_MODE} rt pthread)
-
 endforeach()

@@ -21,8 +21,8 @@
 class Definitions {
 
 public:
-    static const int WAIT_TIMEOUT = 10;
-    static const int RECONNECT_TIMEOUT = 10;
+    static const int WAIT_TIMEOUT = 5;
+    static const int RECONNECT_TIMEOUT = 5;
 
     static const int MAX_ABS_TEMPERATURE = 100;
     static const int HOST_RANDOM_SEED = 666;

@@ -36,7 +36,7 @@ private:
 
     int _hostPid = -1;
 
-    Conn _conn;
+    Conn* _conn = Conn::getConnection();
 
     sem_t* _semHost;
     sem_t* _semClient;

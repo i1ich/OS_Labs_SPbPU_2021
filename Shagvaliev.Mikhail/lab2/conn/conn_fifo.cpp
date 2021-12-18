@@ -1,8 +1,13 @@
-#include "conn.h"
+#include "conn_fifo.h"
 
 #include "../utils/logger.h"
 
-bool Conn::open(size_t hostPid, bool isOwner) {
+Conn *Conn::getConnection() {
+    static ConnFifo connFifo;
+    return &connFifo;
+}
+
+bool ConnFifo::open(size_t hostPid, bool isOwner) {
     Logger& logger = Logger::getInstance();
 
     _isOwner = isOwner;
@@ -26,7 +31,7 @@ bool Conn::open(size_t hostPid, bool isOwner) {
     return true;
 }
 
-bool Conn::read(void* buf, size_t count) {
+bool ConnFifo::read(void* buf, size_t count) {
     Logger& logger = Logger::getInstance();
     bool answer = true;
     if (::read(_desc, buf, count) == -1) {
@@ -36,7 +41,7 @@ bool Conn::read(void* buf, size_t count) {
     return answer;
 }
 
-bool Conn::write(void* buf, size_t count) {
+bool ConnFifo::write(void* buf, size_t count) {
     Logger& logger = Logger::getInstance();
     bool answer = true;
     if (::write(_desc, buf, count) == -1) {
@@ -46,7 +51,7 @@ bool Conn::write(void* buf, size_t count) {
     return answer;
 }
 
-bool Conn::close() {
+bool ConnFifo::close() {
     Logger& logger = Logger::getInstance();
     bool answer = true;
     if (::close(_desc) < 0 || (_isOwner && unlink(_name.c_str()) == -1)) {

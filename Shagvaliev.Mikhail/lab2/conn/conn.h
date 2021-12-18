@@ -5,19 +5,17 @@
 
 class Conn {
 public:
-    bool open(size_t hostPid, bool isOwner);
+    static Conn* getConnection();
 
-    bool read(void* buf, size_t count);
+    virtual bool open(size_t hostPid, bool isOwner) = 0;
 
-    bool write(void* buf, size_t count);
+    virtual bool read(void* buf, size_t count) = 0;
 
-    bool close();
+    virtual bool write(void* buf, size_t count) = 0;
 
-private:
-    int _desc;
-    bool _isOwner;
-    std::string _name;
-    int* _sockets;
+    virtual bool close() = 0;
+
+    virtual ~Conn() = default;
 };
 
 #endif //LAB_2_CONN_H
