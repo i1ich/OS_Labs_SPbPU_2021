@@ -11,7 +11,8 @@ Wolf* Wolf::getInstance() {
     return instance;
 }
 
-Wolf::Wolf(): _gameRun(false), _clientConn(false), _countDeath(0), _clientPid(0) {
+Wolf::Wolf(): _gameRun(false), _countDeath(0), _clientPid(0) {
+    _conn = Conn::getConnection();
     _pid = getpid();
     openlog("Game", LOG_NDELAY | LOG_PID, LOG_USER);
     struct sigaction sig;
@@ -26,7 +27,7 @@ Wolf::~Wolf() {
     if(_clientPid != 0) {
         kill(_clientPid, SIGTERM);
     }
-    if(!_conn.close()){
+    if(!_conn->close()){
         syslog(LOG_ERR, "ERROR: can't close connection");
     }
     if(_semHost != SEM_FAILED) {
@@ -35,6 +36,7 @@ Wolf::~Wolf() {
     if(_semClient != SEM_FAILED) {
         sem_unlink(CLIENT_SEMAPHORE);
     }
+    delete _conn;
 }
 
 void Wolf::signalHandle(int sig, siginfo_t *sigInfo, void *ptr) {
@@ -69,7 +71,7 @@ bool Wolf::init() {
 
     startClient(_pid);
 
-    if(!_conn.open(_pid, true)){
+    if(!_conn->open(_pid, true)){
         syslog(LOG_ERR, "ERROR: can't open connection");
         return false;
     }
@@ -133,7 +135,7 @@ bool Wolf::stopHost() {
 }
 
 bool Wolf::getGoatMessage(Message *message) {
-    return _conn.read(static_cast<void *>(message), sizeof(Message));
+    return _conn->read(static_cast<void *>(message), sizeof(Message));
 }
 
 int Wolf::getWolfNumber() {
@@ -167,7 +169,7 @@ STATUS Wolf::getNewStatus(int wolfNumber, Message goatMessage) {
 
 bool Wolf::sendWolfMessage(STATUS status, int wolfNumber) {
     Message message = {status, wolfNumber};
-    return _conn.write(&message, sizeof(Message));
+    return _conn->write(&message, sizeof(Message));
 }
 
 bool Wolf::checkRun(STATUS status) {

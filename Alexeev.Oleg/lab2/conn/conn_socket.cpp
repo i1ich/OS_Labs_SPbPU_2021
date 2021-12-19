@@ -2,7 +2,27 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-bool Conn::open(pid_t pid, bool isHost) {
+namespace{
+    class ConnSocket: public Conn{
+    public:
+        bool open(pid_t pid, bool isHost) override;
+        bool read(void* buf, size_t size) const override;
+        bool write(void* buf, size_t size) const override;
+        bool close() override;
+        ~ConnSocket() override = default;
+    private:
+        bool _isHost;
+        std::string _name;
+        socklen_t _host_socket;
+        socklen_t _client_socket;
+    };
+}
+
+Conn* Conn::getConnection() {
+    return new ConnSocket();
+}
+
+bool ConnSocket::open(pid_t pid, bool isHost) {
     _isHost = isHost;
     _name = std::string(SOCKET_ROUTE + std::to_string(pid));
 
@@ -43,7 +63,7 @@ bool Conn::open(pid_t pid, bool isHost) {
     return true;
 }
 
-bool Conn::read(void *buf, size_t size) const {
+bool ConnSocket::read(void *buf, size_t size) const {
     if (recv(_client_socket, buf, size, 0) < 0) {
         syslog(LOG_ERR, "ERROR: can't read from socket");
         return false;
@@ -51,7 +71,7 @@ bool Conn::read(void *buf, size_t size) const {
     return true;
 }
 
-bool Conn::write(void *buf, size_t size) const {
+bool ConnSocket::write(void *buf, size_t size) const {
     if (send(_client_socket, buf, size, MSG_NOSIGNAL) < 0) {
         syslog(LOG_ERR, "ERROR: can't write in socket");
         return false;
@@ -59,7 +79,7 @@ bool Conn::write(void *buf, size_t size) const {
     return true;
 }
 
-bool Conn::close() const {
+bool ConnSocket::close() {
     if (_isHost) {
         if (::close(_client_socket) == -1) {
             syslog(LOG_ERR, "ERROR: can't close client socket");
@@ -81,3 +101,5 @@ bool Conn::close() const {
     }
     return true;
 }
+
+Conn::~Conn(){}

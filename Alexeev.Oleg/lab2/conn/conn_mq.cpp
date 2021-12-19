@@ -1,6 +1,25 @@
 #include "conn.h"
 
-bool Conn::open(pid_t pid, bool isHost) {
+namespace{
+    class ConnMq: public Conn{
+    public:
+        bool open(pid_t pid, bool isHost) override;
+        bool read(void* buf, size_t size) const override;
+        bool write(void* buf, size_t size) const override;
+        bool close() override;
+        ~ConnMq() override = default;
+    private:
+        bool _isHost;
+        int _descriptor;
+        std::string _name;
+    };
+}
+
+Conn* Conn::getConnection() {
+    return new ConnMq();
+}
+
+bool ConnMq::open(pid_t pid, bool isHost) {
     _isHost = isHost;
     _name = std::string(MQ_ROUTE + std::to_string(pid));
     if(isHost){
@@ -23,7 +42,7 @@ bool Conn::open(pid_t pid, bool isHost) {
     return true;
 }
 
-bool Conn::read(void* buf, size_t size) const {
+bool ConnMq::read(void* buf, size_t size) const {
     if(mq_receive(_descriptor, static_cast<char*>(buf), size, nullptr) == -1){
         syslog(LOG_ERR, "ERROR: can't read config");
         return false;
@@ -31,7 +50,7 @@ bool Conn::read(void* buf, size_t size) const {
     return true;
 }
 
-bool Conn::write(void* buf, size_t size) const{
+bool ConnMq::write(void* buf, size_t size) const{
     if(mq_send(_descriptor, static_cast<char*>(buf), size, 0) == -1){
         syslog(LOG_ERR, "ERROR: can't write config");
         return false;
@@ -39,7 +58,7 @@ bool Conn::write(void* buf, size_t size) const{
     return true;
 }
 
-bool Conn::close() const {
+bool ConnMq::close() {
     if(_isHost) {
         if (mq_close(_descriptor) != -1) {
             syslog(LOG_INFO, "INFO: connection close successfully");
@@ -50,3 +69,5 @@ bool Conn::close() const {
     }
     return true;
 }
+
+Conn::~Conn(){}

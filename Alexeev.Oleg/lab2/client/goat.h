@@ -34,11 +34,11 @@ private:
 
     static Goat* instance;
     bool _runGame;
-    int _deathCount{};
+    int _deathCount;
     pid_t _hostPid;
     sem_t* _hostSemaphore{};
     sem_t* _clientSemaphore{};
-    Conn _conn{};
+    Conn* _conn;
 };
 
 

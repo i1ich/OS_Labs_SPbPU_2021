@@ -34,13 +34,12 @@ private:
 
     static Wolf* instance;
     bool _gameRun;
-    bool _clientConn;
     int _countDeath;
     sem_t* _semHost{};
     sem_t* _semClient{};
     pid_t _pid;
     pid_t _clientPid;
-    Conn _conn{};
+    Conn* _conn;
 };
 
 

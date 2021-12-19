@@ -6,8 +6,7 @@ cd build
 
 cmake --build
 make
-mv host* ../
-mv client* ../
+mv host_* ../
 
 cd ../
 rm -R build

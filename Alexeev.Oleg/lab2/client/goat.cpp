@@ -11,7 +11,7 @@ Goat* Goat::getInstance(pid_t hostPid) {
     return Goat::instance;
 }
 
-Goat::Goat(): _runGame(false), _hostPid(0) {
+Goat::Goat(): _runGame(false), _hostPid(0), _conn(Conn::getConnection()) {
     signal(SIGTERM, signalHandler);
     signal(SIGUSR1, signalHandler);
     signal(SIGINT, signalHandler);
@@ -24,7 +24,7 @@ Goat::~Goat(){
     if(_hostSemaphore != SEM_FAILED){
         sem_close(_hostSemaphore);
     }
-    if(!_conn.close()){
+    if(!_conn->close()){
         syslog(LOG_ERR, "ERROR: can't close connection");
     }
     kill(_hostPid, SIGTERM);
@@ -33,7 +33,7 @@ Goat::~Goat(){
 bool Goat::init() {
     syslog(LOG_INFO, "INFO: start initialize client");
 
-    if(!_conn.open(_hostPid, false)){
+    if(!_conn->open(_hostPid, false)){
         syslog(LOG_ERR, "ERROR: client can't open connection");
         return false;
     }
@@ -62,7 +62,6 @@ sem_t *Goat::connectToSem(const std::string name) {
         if (semaphore != SEM_FAILED) {
             return semaphore;
         }
-        sleep(1);
     }
     return SEM_FAILED;
 }
@@ -83,7 +82,7 @@ void Goat::run(){
             syslog(LOG_ERR, "ERROR: can't get wolf message");
             return;
         }
-        int goatNumber = getGoatNumber();
+        goatNumber = getGoatNumber();
         if(!sendGoatMessage(goatNumber, wolfMessage.status)){
             syslog(LOG_ERR, "ERROR: can't send goat message");
             return;
@@ -93,7 +92,7 @@ void Goat::run(){
 }
 
 bool Goat::getWolfMessage(Message *message) {
-    return _conn.read(message, sizeof(Message));
+    return _conn->read(message, sizeof(Message));
 }
 
 int Goat::getGoatNumber() {
@@ -105,7 +104,7 @@ int Goat::getGoatNumber() {
 
 bool Goat::sendGoatMessage(int goatNumber, STATUS status) {
     Message message = {status, goatNumber};
-    return _conn.write(&message, sizeof(Message));
+    return _conn->write(&message, sizeof(Message));
 }
 
 bool Goat::stopClient() {
