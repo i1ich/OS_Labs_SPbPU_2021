@@ -1,11 +1,6 @@
 #include "../host/server.h"
 
 bool server::_isTerminate = false;
-server* server::getInstance()
-{
-    static server self;
-    return &self;
-}
 
 void server::setTerminate()
 {
@@ -20,6 +15,7 @@ server::server()
     act.sa_flags = SA_SIGINFO;
     sigaction(SIGTERM, &act, nullptr);
     _hostPid = getpid();
+    std::cout<<"Host started with pid " << _hostPid << std::endl;
     hostOpenConnection();
 }
 
@@ -57,7 +53,6 @@ void server::createClient(int id)
     syslog(LOG_NOTICE, "client semaphore created (%s)", semClientName.c_str());
     _clientSemaphores.push_back(semClient);
     _semClientNames.push_back(semClientName);
-
 
     int seed = rand() % 50 - 25;
     int clientPid = fork();

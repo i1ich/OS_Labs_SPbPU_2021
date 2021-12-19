@@ -19,7 +19,6 @@ public:
     server();
     ~server(){};
     void start();
-    static server* getInstance();
     void setNumOfClients(int n);
 
 private:
@@ -30,7 +29,6 @@ private:
     sem_t* _semaphoreHost;
     std::string _semHostName;
 
-    //std::vector<pthread_t> _clientThreads;
     std::vector<sem_t*> _clientSemaphores;
     std::vector<std::string> _semClientNames;
     std::vector<int> _clientPids;

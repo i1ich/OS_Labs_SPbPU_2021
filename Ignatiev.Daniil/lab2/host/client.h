@@ -23,8 +23,6 @@ private:
     connection *_connection;
     sem_t *_semaphoreHost;
     sem_t *_semaphoreClient;
-    std::string _semClientName;
-    std::string _semHostName;
 
     int _clientId;
     int _randomInt;
@@ -36,4 +34,4 @@ private:
     static void signalHandler(int signum);
 };
 
-#endif //CLIENT_H
+#endif
