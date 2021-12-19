@@ -17,9 +17,9 @@ foreach(PATH_TO_CON ${CONNECTIONS})
         string(REGEX REPLACE "conn_" "" CONN_NAME ${FILE_NAME})
 
         add_executable(host_${CONN_NAME} ${COMMON} ${HOST}
-                connections/Connection.h connections/conn_${CONN_NAME}.cpp connections/conn_${CONN_NAME}.h)
+                connections/connection.h connections/conn_${CONN_NAME}.cpp connections/conn_${CONN_NAME}.h)
         add_executable(client_${CONN_NAME} ${COMMON} ${CLIENT}
-                connections/Connection.h connections/conn_${CONN_NAME}.cpp connections/conn_${CONN_NAME}.h)
+                connections/connection.h connections/conn_${CONN_NAME}.cpp connections/conn_${CONN_NAME}.h host/host.h)
         target_link_libraries(host_${CONN_NAME} PUBLIC pthread rt)
         target_link_libraries(client_${CONN_NAME} PUBLIC pthread rt)
 endforeach()

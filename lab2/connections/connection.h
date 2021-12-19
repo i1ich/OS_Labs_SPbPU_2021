@@ -1,11 +1,11 @@
 #ifndef __CONNECTION_H_
 #define __CONNECTION_H_
 
+#include <sys/types.h>
 
 class connection {
 public:
-    static connection * CreateConnection(void);
-
+    static connection * CreateConnection(pid_t clientPid, bool isHost);
     virtual void Open(size_t hostPid, bool isCreator) = 0;
     virtual void Get(void* buf, size_t count) = 0;
     virtual void Send(void* buf, size_t count) = 0;
