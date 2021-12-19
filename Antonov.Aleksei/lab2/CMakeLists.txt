@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.21)
+project(Wolf_Goat_Game)
+
+set(CMAKE_CXX_STANDARD 17)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
+file(GLOB SRC src/*.cpp src/*.h)
+file(GLOB CONNECTIONS_H src/Connections/conn_mq.h src/Connections/conn_pipe.h src/Connections/conn_shm.h)
+file(GLOB CONNECTIONS_CPP src/Connections/conn_mq.cpp src/Connections/conn_pipe.cpp src/Connections/conn_shm.cpp)
+
+find_library(LIBRT rt)
+
+add_compile_options(-Wall -Wextra -pedantic -Werror)
+list(LENGTH CONNECTIONS_H LEN)
+foreach(CONN_PATH CONN_PATH_CPP IN ZIP_LISTS CONNECTIONS_H CONNECTIONS_CPP)
+    message(${CONN_PATH} ${CONN_PATH_CPP})
+    find_package(Threads REQUIRED)
+    get_filename_component(CONN_FILE ${CONN_PATH} NAME_WLE )
+    string(REGEX REPLACE "conn_" "" CONN_TYPE ${CONN_FILE})
+    add_executable(${PROJECT_NAME}-${CONN_TYPE} ${SRC} ${CONN_PATH} ${CONN_PATH_CPP} src/Connections/conn.h)
+    target_link_libraries(${PROJECT_NAME}-${CONN_TYPE} Threads::Threads rt)
+endforeach()
