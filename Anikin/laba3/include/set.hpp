@@ -4,7 +4,7 @@
 
 namespace lab
 {
-    template <typename T>
+    template <typename T, typename COMPARATOR_T = std::less<T>>
     class set
     {
     public:
@@ -42,15 +42,15 @@ namespace lab
     };
 }
 
-template <typename T>
-lab::set<T>::set() : 
+template <typename T, typename COMPARATOR_T>
+lab::set<T, COMPARATOR_T>::set() : 
     m_top(nullptr),
     m_lock(PTHREAD_MUTEX_INITIALIZER)
 {
 }
 
-template <typename T>
-lab::set<T>::~set()
+template <typename T, typename COMPARATOR_T>
+lab::set<T, COMPARATOR_T>::~set()
 {
     pthread_mutex_lock(&m_lock);
     auto it = m_top;
@@ -65,15 +65,15 @@ lab::set<T>::~set()
     pthread_mutex_unlock(&m_lock);
 }
 
-template <typename T>
-lab::set<T>::set(set const& over)
+template <typename T, typename COMPARATOR_T>
+lab::set<T, COMPARATOR_T>::set(set const& over)
 {
     this->m_lock = PTHREAD_MUTEX_INITIALIZER;
     this->m_top = (over.m_top == nullptr) ? nullptr : over.m_top->clone();
 }
 
-template <typename T>
-lab::set<T>& lab::set<T>::operator==(set const& over)
+template <typename T, typename COMPARATOR_T>
+lab::set<T, COMPARATOR_T>& lab::set<T, COMPARATOR_T>::operator==(set const& over)
 {
     this->m_lock = PTHREAD_MUTEX_INITIALIZER;
     this->m_top = (over.m_top == nullptr) ? nullptr : over.m_top->clone();
@@ -81,8 +81,8 @@ lab::set<T>& lab::set<T>::operator==(set const& over)
     return *this;
 }
 
-template <typename T>
-bool lab::set<T>::add(T const& item)
+template <typename T, typename COMPARATOR_T>
+bool lab::set<T, COMPARATOR_T>::add(T const& item)
 {
     pthread_mutex_lock(&m_lock);
     if (async_contains(item)){
@@ -99,15 +99,15 @@ bool lab::set<T>::add(T const& item)
     return true;
 }
 
-template <typename T>
-bool lab::set<T>::remove(T const& item)
+template <typename T, typename COMPARATOR_T>
+bool lab::set<T, COMPARATOR_T>::remove(T const& item)
 {
     pthread_mutex_lock(&m_lock);
     auto it = m_top;
     list_node* prev_it = nullptr;
 
     while (it != nullptr){
-        if (it->item == item){
+        if (!COMPARATOR_T()(it->item, item) && !COMPARATOR_T()(item, it->item)){
             auto next_it = it->next;
             delete it;
             if (prev_it == nullptr)
@@ -126,8 +126,8 @@ bool lab::set<T>::remove(T const& item)
     return false;
 }
 
-template <typename T>
-bool lab::set<T>::contains(T const& item) const
+template <typename T, typename COMPARATOR_T>
+bool lab::set<T, COMPARATOR_T>::contains(T const& item) const
 {
     pthread_mutex_lock(&m_lock);
     bool result = async_contains(item);
@@ -136,8 +136,8 @@ bool lab::set<T>::contains(T const& item) const
     return result;
 }
 
-template <typename T>
-size_t lab::set<T>::size() const
+template <typename T, typename COMPARATOR_T>
+size_t lab::set<T, COMPARATOR_T>::size() const
 {
     pthread_mutex_lock(&m_lock);
     size_t count = 0;
@@ -151,20 +151,20 @@ size_t lab::set<T>::size() const
     return count;
 }
 
-template <typename T>
-bool lab::set<T>::async_contains(T const& item) const
+template <typename T, typename COMPARATOR_T>
+bool lab::set<T, COMPARATOR_T>::async_contains(T const& item) const
 {
     auto it = m_top;
     while (it != nullptr){
-        if (it->item == item)
+        if (!COMPARATOR_T()(it->item, item) && !COMPARATOR_T()(item, it->item))
             return true;
         it = it->next;
     }
     return false;
 }    
 
-template <typename T>
-typename lab::set<T>::list_node* lab::set<T>::list_node::clone() const
+template <typename T, typename COMPARATOR_T>
+typename lab::set<T, COMPARATOR_T>::list_node* lab::set<T, COMPARATOR_T>::list_node::clone() const
 {
     auto new_list = new list_node;
     new_list->item = item;
