@@ -1,229 +1,343 @@
+#include <random>
+#include <iostream>
+#include <set>
 #include "test.h"
 
-void createSet(SetType type, Set** set) {
-    std::cout << "Set type: ";
 
-    switch (type) {
-        case SetType::COARSE:
-            std::cout << "Coarse-Grained" << std::endl;
-            *set = new CoarseSet();
+void Tests::run(SetType setType, TestType testType, int writersNum, int readersNum, int writingNum, int readingNum) {
+    CheckWriters(setType, testType, writersNum, writingNum);
+    CheckReaders(setType, testType, readersNum, readingNum);
+    CheckReadersWriters(setType, testType, writersNum, writingNum, readersNum, readingNum);
+}
+
+void Tests::CheckWriters(SetType setType, TestType testType, int writersNum, int writingNum) {
+    std::cout << "Writers test" << std::endl;
+    long time = 0;
+    std::vector<pthread_t> threads(writersNum);
+
+    for (int j = 0; j < REPEAT_TIMES; ++j) {
+        auto set = CreateSet(setType);
+        auto items = GenerateData(testType, writersNum, writingNum);
+        auto startTime = clock();
+        std::vector<WriterArgs> argsArr(writersNum);
+        for (int i = 0; i < writersNum; i++) {
+            argsArr[i] = CreateWriterArgs(items, i, set);
+            pthread_create(&threads[i], nullptr, asyncWrite, &argsArr[i]);
+        }
+        for (int i = 0; i < writersNum; i++) {
+            pthread_join(threads[i], nullptr);
+        }
+        auto endTime = clock();
+        time += endTime - startTime;
+        for (auto& array: items) {
+            if (!checkAllItems(set, array)) {
+                std::cout << "NOT PASSED " << "at iteration #" << j  << std::endl;
+                delete set;
+                return;
+            }
+        }
+        delete set;
+    }
+    std::cout << "PASSED with average time = " << time / (double)REPEAT_TIMES << " of repetitions: " << REPEAT_TIMES << std::endl;
+}
+
+void Tests::CheckReaders(SetType setType, TestType testType, int readersNum, int readingNum) {
+    std::cout << "Readers test" << std::endl;
+    long time = 0;
+    std::vector<pthread_t> threads(readersNum);
+    std::vector<bool> found;
+    pthread_mutex_t mutex;
+    if (pthread_mutex_init(&mutex, nullptr) != 0)
+        throw std::runtime_error("error in found array's mutex initializing");
+
+    for (int j = 0; j < REPEAT_TIMES; ++j) {
+        auto set = CreateSet(setType);
+        auto items = GenerateData(testType, readersNum, readingNum);
+        int itemsNum = 0;
+        for (auto const& arr : items) {
+            addToSet(set, arr);
+            itemsNum += static_cast<int>(arr.size());
+        }
+        found = std::vector<bool>(itemsNum, false);
+        std::vector<ReaderArgs> argsArr(readersNum);
+        auto startTime = clock();
+        for (int i = 0; i < readersNum; i++) {
+            argsArr[i] = CreateReaderArgs(items, i, set, found, mutex);
+            pthread_create(&threads[i], nullptr, asyncRead, &argsArr[i]);
+        }
+        for (int i = 0; i < readersNum; i++) {
+            pthread_join(threads[i], nullptr);
+        }
+        auto endTime = clock();
+        time += endTime - startTime;
+        for (size_t i = 0; i < found.size(); ++i) {
+            if (!found[i]) {
+                std::cout << "NOT PASSED " << "at iteration #" << j << " element was not found at pos " << i << std::endl;
+                delete set;
+                return;
+            }
+            else if (i + 1 == found.size()) {
+                if (!set->empty()) {
+                    std::cout << "NOT PASSED " << "at iteration #" << j << " set is not empty" << std::endl;
+                    delete set;
+                    return;
+                }
+            }
+        }
+        delete set;
+    }
+    if (pthread_mutex_destroy(&mutex) != 0)
+        throw std::runtime_error("error in found array's mutex destroying");
+
+    std::cout << "PASSED with average time = " << time / (double)REPEAT_TIMES << " of repetitions: " << REPEAT_TIMES << std::endl;
+}
+
+void Tests::CheckReadersWriters(SetType setType, TestType testType, int writersNum, int writingNum, int readersNum,
+                                int readingNum) {
+    std::cout << "Total test:" << std::endl;
+    if (readersNum * readingNum != writersNum * writingNum) {
+        std:: cout << "Should be readersNum * readingNum  = writersNum * writingNum" << std::endl;
+        return;
+    }
+    std::vector<bool> found;
+    std::vector<pthread_t> readers(readersNum);
+    std::vector<pthread_t> writers(writersNum);
+    long time = 0;
+    pthread_mutex_t mutex;
+    if (pthread_mutex_init(&mutex, nullptr) != 0)
+        throw std::runtime_error("error in found array's mutex initializing");
+
+    for (int j = 0; j < REPEAT_TIMES; ++j) {
+        auto set = CreateSet(setType);
+        std::vector<std::vector<int>> items;
+        try {
+            items = GenerateData(testType, writersNum, writingNum);
+        }
+        catch (std::runtime_error& err) {
+            std::cout << err.what() << std::endl;
+            continue;
+        }
+        int itemsNum = 0;
+        for (auto const& arr : items) {
+            addToSet(set, arr);
+            itemsNum += static_cast<int>(arr.size());
+        }
+        found = std::vector<bool>(itemsNum, false);
+        std::vector<ReaderArgs> readerArgsArr(readersNum);
+        std::vector<WriterArgs> writerArgsArr(writersNum);
+        auto startTime = clock();
+        for (int i = 0; i < writersNum; i++) {
+            writerArgsArr[i] = CreateWriterArgs(items, i, set);
+            pthread_create(&writers[i], nullptr, asyncWrite, &writerArgsArr[i]);
+        }
+        for (int i = 0; i < writersNum; i++) {
+            pthread_join(writers[i], nullptr);
+        }
+
+        reshape(items, readersNum);
+        for (int i = 0; i < readersNum; i++) {
+            readerArgsArr[i] = CreateReaderArgs(items, i, set, found, mutex);
+            pthread_create(&readers[i], nullptr, asyncRead, &readerArgsArr[i]);
+        }
+        for (int i = 0; i < readersNum; i++) {
+            pthread_join(readers[i], nullptr);
+        }
+        auto endTime = clock();
+        time += endTime - startTime;
+        for (size_t i = 0; i < found.size(); ++i) {
+            if (!found[i]) {
+                std::cout << "NOT PASSED " << "at iteration #" << j << " element was not found at pos " << i << std::endl;
+                delete set;
+                return;
+            }
+            else if (i + 1 == found.size()) {
+                if (!set->empty()) {
+                    std::cout << "NOT PASSED " << "at iteration #" << j << " set is not empty" << std::endl;
+                    delete set;
+                    return;
+                }
+            }
+        }
+        delete set;
+    }
+    if (pthread_mutex_destroy(&mutex) != 0)
+        throw std::runtime_error("error in found array's mutex destroying");
+
+    std::cout << "PASSED with average time = " << time / (double)REPEAT_TIMES << " of repetitions: " << REPEAT_TIMES << std::endl;
+}
+
+std::vector<std::vector<int>> Tests::GenerateData(TestType testType, int arraysNum, int itemsNum) {
+    std::vector<std::vector<int>> result(arraysNum);
+    switch (testType) {
+        case RANDOM_TEST_TYPE: {
+            std::set<int> items;
+            std::random_device rd;
+            std::mt19937 rng(rd());
+            std::uniform_int_distribution<int> uni(MIN_SET_VALUE, MAX_SET_VALUE);
+            int elementsPermitted = 0;
+            for (int i = 0; i < arraysNum; ++i) {
+                elementsPermitted += itemsNum;
+                int j = 0;
+                while (static_cast<int>(items.size()) < elementsPermitted && j < MAX_GENERATING_ATTEMPTS) {
+                    items.insert(uni(rng));
+                    ++j;
+                }
+                if (static_cast<int>(items.size()) < elementsPermitted)
+                    throw std::runtime_error("Can not generate data");
+            }
+            auto begin = items.begin(), end = items.begin();
+            std::advance (end, itemsNum);
+            for (int i = 0; i < arraysNum; ++i) {
+                std::vector<int> arr(begin, end);
+                result[i] = arr;
+                begin = end;
+                std::advance (end, itemsNum);
+            }
             break;
-
-        case SetType::LAZY:
-            std::cout << "Lazy" << std::endl;
-            *set = new LazySet();
+        }
+        case SEQUENTIAL_TEST_TYPE: {
+            for (int i = 0; i < arraysNum; ++i) {
+                std::vector<int> items(itemsNum);
+                for (int j = 0; j < itemsNum; ++j)
+                    items[j] = i + j * arraysNum;
+                result[i] = items;
+            }
             break;
-
+        }
         default:
-            std::cerr << "Collection type error" << std::endl;
-            *set = nullptr;
             break;
     }
+    return result;
 }
 
-void createArrays(TestType test_type, std::vector<int>& array, std::vector<bool>& found, int size) {
-    array.clear();
-    found.clear();
-    if (test_type == TestType::SEQUENTIAL) {
-        std::cout << "Sequential ";
-        for (int i = 0; i < size; ++i) {
-            array.push_back(i);
-            found.push_back(false);
-        }
+Set *Tests::CreateSet(Tests::SetType setType) {
+    switch (setType) {
+        case COARSE_SET:
+            return new CoarseSet();
+        case LAZY_SET:
+            return new LazySet();
+        default:
+            return nullptr;
     }
-    else {
-        std::cout << "Random ";
-        for (int i = 0; i < size; ++i) {
-            int item = std::rand();
-            array.push_back(item);
-            found.push_back(false);
-        }
-    }
-    std::cout << "items" << std::endl;
 }
 
-void *read(void* args) {
-    Arg_t arg = *((Arg_t*)args);
-    int pos = arg.idx;
-    for (int i = 0, step = arg.step; i < arg.num_steps; i++, pos += step) {
-        int item = arg.items->at(pos);
-        if (arg.set->contains(item)) {
-            arg.found->at(pos) = true;
-            std::cout << "Item " << item << " read" << std::endl;
+void *Tests::asyncWrite(void *writerArgs) {
+    auto *args = (WriterArgs *)writerArgs;
+    for (size_t i = 0; i < args->itemsToWrite.size(); ++i) {
+        for (int n = 0; n < OPERATION_ATTEMTS_NUM; ++n) {
+            if (args->set->add(args->itemsToWrite[i])) {
+                break;
+            }
         }
-        arg.set->remove(item);
-
     }
     return nullptr;
 }
 
-void *write(void *args) {
-    Arg_t arg = *((Arg_t*) args);
-    int pos = arg.idx;
-    int step = arg.step;
-    for (int i = 0; i < arg.num_steps; i++) {
-        int item = arg.items->at(pos);
-        if (arg.set->add(item)) {
-            std::cout << "Item " << item << " added" << std::endl;
+void *Tests::asyncRead(void *readerArgs) {
+    auto *args = (ReaderArgs *) readerArgs;
+    for (size_t i = 0; i < args->readedItems.size(); ++i) {
+        bool isRemoved = false;
+        for (int n = 0; n < OPERATION_ATTEMTS_NUM; ++n) {
+            if (args->set->contains(args->readedItems[i])) {
+                pthread_mutex_lock(args->mutex);
+                args->found->at(args->foundPos + i) = true;
+                pthread_mutex_unlock(args->mutex);
+                isRemoved = false;
+                for (int m = 0; m < OPERATION_ATTEMTS_NUM; ++m) {
+                    if (args->set->remove(args->readedItems[i])) {
+                        isRemoved = true;
+                        break;
+                    }
+                }
+                if (!isRemoved) {
+                    throw std::runtime_error("Error in writer: can not remove item");
+                }
+                break;
+            }
         }
-        pos += step;
+        if (!isRemoved) {
+            throw std::runtime_error("Error in writer: item was not found");
+        }
     }
     return nullptr;
 }
 
-std::vector<Arg_t> prepareArgs(std::vector<int>& array, std::vector<bool>& found, int num_threads, int num_steps, Set* set) {
-    std::vector<Arg_t> args;
-    args.resize(num_threads);
-    for (int i = 0; i < num_threads; i++) {
-        args[i].num_steps = num_steps;
-        args[i].items = &array;
-        args[i].found = &found;
-        args[i].idx = i;
-        args[i].set = set;
-        args[i].step = num_threads;
-    }
+Tests::WriterArgs Tests::CreateWriterArgs(std::vector<std::vector<int>> const& items, int threadIdx,
+                                          Set *set) {
+    auto args = Tests::WriterArgs();
+    args.itemsToWrite = items[threadIdx];
+    args.set = set;
     return args;
 }
 
-void callExecutor(std::vector<pthread_t>& threads, std::vector<Arg_t> args, int num_threads, Executor exec) {
-    void* (*call) (void*);
-    if (exec == Executor::READER) {
-        call = read;
-    }
-    else {
-        call = write;
-    }
-    for (int i = 0; i < num_threads; i++) {
-        pthread_create(&threads[i], nullptr, call, &args[i]);
-    }
-}
-
-bool checkItem(Set* set, int item) {
-    bool found = set->contains(item);
-    bool del = set->remove(item);
-
-    return (found && del);
-}
-
-bool checkAllItems(Set* set, std::vector<int>& items) {
-    for (auto item : items) {
-        if (!checkItem(set, item)) {
+bool Tests::checkAllItems(Set *set,  std::vector<int> const& array) {
+    for (auto item : array) {
+        if (!set->contains(item) || !set->remove(item))
             return false;
-        }
     }
     return true;
 }
 
-void WritersTest(SetType set_type, TestType test_type, int num_records, int num_writers) {
-    std::cout << "Writers test:" << std::endl;
-    Set* set;
-    std::vector<int> array;
-    std::vector<bool> found;
-    std::vector<pthread_t> threads;
-    threads.resize(num_writers);
-    int num_tests = num_writers;
-    unsigned int time = 0;
-    for (int i = 0; i < num_tests; i++) {
-        createSet(set_type, &set);
-        createArrays(test_type, array, found, num_records * num_writers);
-        std::vector<Arg_t> args = prepareArgs(array, found, num_writers, num_records, set);
-        unsigned int start_time = clock();
-        callExecutor(threads, args, num_writers, Executor::WRITER);
-        for (int j = 0; j < num_writers; ++j) {
-            pthread_join(threads[j], nullptr);
-        }
-        unsigned int end_time = clock();
-        std::cout << "Writers test ";
-        if (!checkAllItems(set, array)) {
-            std::cout << "NOT ";
-        }
-        std::cout << "passed" << std::endl;
-        time += end_time - start_time;
-        delete set;
-    }
-    std::cout << "Execution time " << time / num_tests << "ms" << std::endl << std::endl;
+Tests::ReaderArgs
+Tests::CreateReaderArgs(const std::vector<std::vector<int>> &items, int threadIdx, Set *set,
+                        std::vector<bool> &found, pthread_mutex_t& mutex) {
+    auto args = Tests::ReaderArgs();
+    args.readedItems = items[threadIdx];
+    args.set = set;
+    args.mutex = &mutex;
+    int counter = 0;
+    for (int i = 0; i < threadIdx; ++i)
+        counter += items[i].size();
+    args.foundPos = counter;
+    args.found = &found;
+    return args;
 }
 
-void fillSet(TestType test_type, Set* set, std::vector<int>& array, std::vector<bool>& found, int size) {
-    createArrays(test_type, array, found, size);
-    for (int i  = 0; i < size; ++i) {
-        set->add(array[i]);
-    }
+void Tests::addToSet(Set *set, const std::vector<int> &array) {
+    if (!set)
+        return;
+    for (auto item : array)
+        set->add(item);
 }
 
-bool checkFound(const std::vector<bool>& found) {
-    for (auto f : found) {
-        if (!f) {
-            return false;
+void Tests::reshape(std::vector<std::vector<int>> &items, int arraysNum, int itemsNum) {
+    std::vector<std::vector<int>> newArray(arraysNum);
+    int elementsNum = 0;
+    for (auto const& arr : items)
+        elementsNum += arr.size();
+    if (itemsNum != -1 && arraysNum * itemsNum != elementsNum)
+        throw std::runtime_error("Error in reshape method: mismatching sizes");
+    if (itemsNum == -1)
+        itemsNum = elementsNum / arraysNum;
+    size_t k = 0;
+    size_t i = 0;
+    for(int n = 0; n < arraysNum; ++n) {
+        std::vector<int> arr(itemsNum);
+        for (int j = 0; j < itemsNum; ++j) {
+            if (items[k].size() <= i) {
+                ++k;
+                i = 0;
+            }
+            arr[j] = items[k][i];
+            ++i;
         }
+        newArray[n] = arr;
     }
-    return true;
-}
 
-void ReadersTest(SetType set_type, TestType test_type, int num_records, int num_readers) {
-    std::cout << "Readers test: " << std::endl;
-    Set* set;
-    std::vector<int> array;
-    std::vector<pthread_t> threads;
-    std::vector<bool> found;
-    threads.resize(num_readers);
-    unsigned int time = 0;
-    int num_tests = num_readers;
-    for (int i = 0; i < num_tests; i++) {
-        createSet(set_type, &set);
-        fillSet(test_type, set, array, found, num_records * num_readers);
-        std::vector<Arg_t> args = prepareArgs(array, found, num_readers, num_records, set);
-        unsigned int start_time = clock();
-        callExecutor(threads, args, num_readers, Executor::READER);
-        for (int j = 0; j < num_readers; ++j) {
-            pthread_join(threads[j], nullptr);
+    int n = 0;
+    while (k + 1 < items.size()) {
+        if (items[k].size() >= i) {
+            ++k;
+            i = 0;
         }
-        unsigned int end_time = clock();
-        std::cout << "Readers test ";
-        if (!set->empty()) { //if (!checkFound(found) || !set->empty()) {
-            std::cout << "NOT ";
-        }
-        std::cout << "passed" << std::endl;
-        time += end_time - start_time;
-        delete set;
+        newArray[n].push_back(items[k][i]);
+        ++i;
+        ++n;
     }
-    std::cout << "Execution time " << time / num_tests << "ms" << std::endl << std::endl;
-}
-
-void TotalTest(SetType set_type, TestType test_type, int readers_mult, int num_readers, int writers_mult, int num_writers) {
-    std::cout << "Total test:\n";
-    if (num_readers * readers_mult != num_writers * writers_mult) { return; }
-    int num_tests = num_writers * num_readers;
-    Set* set;
-    std::vector<int> array;
-    std::vector<bool> found;
-    std::vector<pthread_t> readers_threads;
-    readers_threads.resize(num_readers);
-    std::vector<pthread_t> writers_threads;
-    writers_threads.resize(num_writers);
-    unsigned int total_time = 0;
-    for (int n = 0; n < num_tests; ++n) {
-        createSet(set_type, &set);
-        createArrays(test_type, array, found, writers_mult * num_writers);
-        std::vector<Arg_t> args = prepareArgs(array, found, num_writers, writers_mult, set);
-        unsigned int start_time = clock();
-        callExecutor(writers_threads, args, num_writers, Executor::WRITER);
-        for (int i = 0; i < num_writers; ++i) {
-            pthread_join(writers_threads[i], nullptr);
-        }
-
-        callExecutor(readers_threads, args, num_readers, Executor::READER);
-        for (int i = 0; i < num_readers; ++i) {
-            pthread_join(readers_threads[i], nullptr);
-        }
-        unsigned int end_time = clock();
-        std::cout << "Total test " << n + 1;
-        if (!checkFound(found) || !set->empty()) {
-            std::cout << " NOT";
-        }
-        std::cout << " passed" << std::endl;
-        total_time += end_time - start_time;
-        delete set;
+    while (i < items[k].size()) {
+        newArray[n].push_back(items[k][i]);
+        ++i;
+        ++n;
     }
-    std::cout << "Execution time " << total_time / num_tests << "ms" << std::endl << std::endl;
+    items = newArray;
 }

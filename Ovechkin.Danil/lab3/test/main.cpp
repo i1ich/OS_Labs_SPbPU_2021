@@ -1,42 +1,43 @@
-#include <string>
 #include "test.h"
 
-int main(int argc, char* argv[]) {
-    if (argc < 9) {
+void print_help() {
+    std::cout << "4 args required: writers number, writing per writer number(equal in each writer), "
+                 "readers number, reading per writer number(equal in each reader)"<< std::endl;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 5) {
+        print_help();
         return 1;
     }
-    int num_w = std::stoi(argv[1]);     // writers
-    int num_wm = std::stoi(argv[2]);    // writers multiplier
-    int num_r = std::stoi(argv[3]);     // readers
-    int num_rm = std::stoi(argv[4]);    // readers multiplier
-    int num_w_t = std::stoi(argv[5]);   // writers totalTest
-    int num_wm_t = std::stoi(argv[6]);  // writers totalTest multiplier
-    int num_r_t = std::stoi(argv[7]);   // readers totalTest
-    int num_rm_t = std::stoi(argv[8]);  // readers totalTest multiplier
 
-    // Coarse set testing
-    //      Writers
-    WritersTest(SetType::COARSE, TestType::SEQUENTIAL, num_wm, num_w);
-    WritersTest(SetType::COARSE, TestType::RANDOM, num_wm, num_w);
-    //      Readers
-    ReadersTest(SetType::COARSE, TestType::SEQUENTIAL, num_rm, num_r);
-    ReadersTest(SetType::COARSE, TestType::RANDOM, num_rm, num_r);
+    int writersNum = std::stoi(argv[1]);
+    int writingNum = std::stoi(argv[2]);
+    int readersNum = std::stoi(argv[3]);
+    int readingNum = std::stoi(argv[4]);
 
-    // Lazy set testing
-    //      Writers
-    WritersTest(SetType::LAZY, TestType::SEQUENTIAL, num_wm, num_w);
-    WritersTest(SetType::LAZY, TestType::RANDOM, num_wm, num_w);
-    //      Readers
-    ReadersTest(SetType::LAZY, TestType::SEQUENTIAL, num_rm, num_r);
-    ReadersTest(SetType::LAZY, TestType::RANDOM, num_rm, num_r);
+    try {
+        std::cout << std::endl << "COARSE SET SEQUENTIAL:" << std::endl;
+        Tests::run(Tests::SetType::COARSE_SET, Tests::TestType::SEQUENTIAL_TEST_TYPE, writersNum,
+                   readersNum, writingNum, readingNum);
+        std::cout << std::endl << "COARSE SET RANDOM:" << std::endl;
+        Tests::run(Tests::SetType::COARSE_SET, Tests::TestType::RANDOM_TEST_TYPE, writersNum,
+                   readersNum, writingNum, readingNum);
 
-    // Total test
-    //      Coarse
-    TotalTest(SetType::COARSE, TestType::SEQUENTIAL, num_rm_t, num_r_t, num_wm_t, num_w_t);
-    TotalTest(SetType::COARSE, TestType::RANDOM, num_rm_t, num_r_t, num_wm_t, num_w_t);
-    //      Lazy
-    TotalTest(SetType::LAZY,TestType::SEQUENTIAL, num_rm_t, num_r_t, num_wm_t, num_w_t);
-    TotalTest(SetType::LAZY, TestType::RANDOM, num_rm_t, num_r_t, num_wm_t, num_w_t);
-
-    return 0;
+        std::cout << std::endl << "LAZY SET SEQUENTIAL:" << std::endl;
+        Tests::run(Tests::SetType::LAZY_SET, Tests::TestType::SEQUENTIAL_TEST_TYPE, writersNum,
+                   readersNum, writingNum, readingNum);
+        std::cout << std::endl << "LAZY SET RANDOM:" << std::endl;
+        Tests::run(Tests::SetType::LAZY_SET, Tests::TestType::RANDOM_TEST_TYPE, writersNum,
+                   readersNum, writingNum, readingNum);
+        return 0;
+    }
+    catch (std::runtime_error &error) {
+        std::cout << "ERROR: " << error.what() << std::endl;
+        return 1;
+    }
+    catch (...) {
+        std::cout << "ERROR: undefined error" << std::endl;
+        return 1;
+    }
 }
