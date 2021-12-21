@@ -34,11 +34,11 @@ void client::run()
 
     while (!_isTerminate)
     {
-        std::cout<<"client with id " << _clientId << " is waiting\n";
+        //std::cout<<"client with id " << _clientId << " is waiting\n";
         sem_wait(_semaphoreClient);
 
         _connection->read(&msg, sizeof(msg));
-        std::cout<<"Client: got msg: d - " << msg.getDay() << " m  - "<<msg.getMonth()<<" y - "<<msg.getYear()<<std::endl;
+        //std::cout<<"Client: got msg: d - " << msg.getDay() << " m  - "<<msg.getMonth()<<" y - "<<msg.getYear()<<std::endl;
         getWeather(msg);
 
         _connection->write(&msg, sizeof(msg));

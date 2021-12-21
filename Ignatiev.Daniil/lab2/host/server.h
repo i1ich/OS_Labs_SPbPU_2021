@@ -5,8 +5,9 @@
 #include <semaphore.h>
 #include <vector>
 #include <fcntl.h>
-#include<sstream>
+#include <sstream>
 #include <cstring>
+#include <thread>
 #include "../connection/connection.h"
 #include "../connection/message.h"
 #include "../host/client.h"
@@ -16,18 +17,19 @@ class server
 {
 public:
 
-    server();
+    server(int clientsNum);
     ~server(){};
     void start();
-    void setNumOfClients(int n);
 
 private:
     static bool _isTerminate;
     int _clientNum;
     int _hostPid;
-    connection* _conn;
-    sem_t* _semaphoreHost;
-    std::string _semHostName;
+    int _answersNum;
+    std::vector<connection*> _conns;
+    std::vector<sem_t*> _semaphoresHost;
+    std::vector<std::string> _semHostNames;
+    std::vector<std::thread*> _threads;
 
     std::vector<sem_t*> _clientSemaphores;
     std::vector<std::string> _semClientNames;
@@ -39,6 +41,7 @@ private:
     bool hostOpenConnection();
     void createClient(int id);
     void run();
+    void listenForAnswer(int id);
     void terminate(int signum);
 
 };

@@ -7,7 +7,7 @@ void server::setTerminate()
     _isTerminate = true;
 }
 
-server::server()
+server::server(int clientsNum) : _clientNum(clientsNum)
 {
     struct sigaction act{};
     memset(&act, 0, sizeof(act));
@@ -17,31 +17,36 @@ server::server()
     _hostPid = getpid();
     std::cout<<"Host started with pid " << _hostPid << std::endl;
     hostOpenConnection();
-}
-
-void server::setNumOfClients(int n)
-{
-    _clientNum = n;
+    _threads.clear();
 }
 
 bool server::hostOpenConnection()
 {
-    _conn = connection::createConnection();
-    _conn->open(0, true);
-    _semHostName = "semHost";
-    _semaphoreHost = sem_open(_semHostName.c_str(), O_CREAT, 0666, 0);
-    if (_semaphoreHost == SEM_FAILED)
+    connection* conn;
+    sem_t* semHost;
+    for(int i = 0; i< _clientNum; i++)
     {
-        syslog(LOG_ERR, "ERROR: handler: can`t open host semaphore error = %s", strerror(errno));
-        return false;
+        conn = connection::createConnection();
+        conn->open(i, true);
+        _conns.push_back(conn);
+
+        _semHostNames.push_back( std::string("semHost_") + std::to_string(i) );
+        semHost = sem_open(_semHostNames[i].c_str(), O_CREAT, 0666, 0);
+        if (semHost == SEM_FAILED)
+        {
+            syslog(LOG_ERR, "ERROR: handler: can`t open host semaphore error = %s", strerror(errno));
+            return false;
+        }
+        _semaphoresHost.push_back(semHost);
+
+        syslog(LOG_NOTICE, "handler: host semaphore created (%s)", _semHostNames[i].c_str());
     }
-    syslog(LOG_NOTICE, "handler: host semaphore created (%s)", _semHostName.c_str());
+
     return true;
 }
 
 void server::createClient(int id)
 {
-
     std::string semClientName = "client_" + std::to_string(id);
     sem_t *semClient = sem_open(semClientName.c_str(), O_CREAT, 0666, 0);
 
@@ -60,8 +65,8 @@ void server::createClient(int id)
     {
         std::cout<< "Created client with id " << id << " and pid " << getpid() << "\n";
         client *c = client::getInstance(id, seed);
-        c->setConnection(_conn);
-        c->setSem(semClient, _semaphoreHost);
+        c->setConnection(_conns[id]);
+        c->setSem(semClient, _semaphoresHost[id]);
 
         syslog(LOG_INFO, "Client with id %i created", id);
         c->run();
@@ -101,11 +106,20 @@ void server::start()
     run();
 }
 
+void server::listenForAnswer(int id)
+{
+    message ansMsg;
+    sem_wait(_semaphoresHost[id]);
+    _conns[id]->read(&ansMsg, sizeof(ansMsg));
+    std::cout<<"Server: Answer from client " << id << ": "<< ansMsg.getTemp()<< std::endl;
+    _answersNum++;
+}
+
 void server::run()
 {
-    message msg, ansMsg;
+    message msg;
     std::string recievedDate;
-
+    std::thread* thread;
 
     while (!_isTerminate)
     {
@@ -119,17 +133,25 @@ void server::run()
             }
             else if(dateToMsg(recievedDate, msg))
             {
+                _answersNum = 0;
                 std::cout<<"Server: data got.\n";
+                std::cout<<"Server: sending data...\n";
 
+                int id = 0;
                 for(sem_t* sem : _clientSemaphores)
                 {
-                    _conn->write(&msg, sizeof(msg));
-                    std::cout<<"Server: sending data...\n";
+                    _conns[id]->write(&msg, sizeof(msg));
                     sem_post(sem);
-                    sem_wait(_semaphoreHost);
-                    _conn->read(&ansMsg, sizeof(ansMsg));
-                    std::cout<<"Server: Answer from client: " << ansMsg.getTemp() << "\n";
+                    thread = new std::thread(&server::listenForAnswer, this, id);
+                    _threads.push_back(thread);
+                    id++;
                 }
+
+                //std::cout<<"Server: waiting for all cients.\n";
+                while(_answersNum != _clientNum)    //waiting for all cients
+                {;}
+                //std::cout<<"Server: all responses got.\n";
+                _threads.clear();
             }
             else
             {
@@ -158,6 +180,7 @@ void server::signalHandler(int signum, siginfo_t *info, void *ptr)
 
 void server::terminate(int signum)
 {
+
     syslog(LOG_INFO, "Starting clients terminating...");
 
     for (auto &p : _clientPids)
@@ -165,37 +188,47 @@ void server::terminate(int signum)
         std::cout<<"Server: terminating client with pid "<< p << std::endl;
         kill(p, SIGKILL);
     }
-
-    if (!_conn->close())
+    int i = 0;
+    for (auto c : _conns)
     {
-        syslog(LOG_ERR, "Terminating error connection: %s", strerror(errno));
-    }
-
-    if (_semaphoreHost != SEM_FAILED)
-    {
-        _semaphoreHost = SEM_FAILED;
-
-        if (sem_unlink(_semHostName.c_str()) != 0)
+        if (!c->close())
         {
-            syslog(LOG_ERR, "Terminating error semHostName: %s", strerror(errno));
+            syslog(LOG_ERR, "Terminating error connection: %s", strerror(errno));
         }
+        std::cout<<"Server: Connection " << i <<" closed\n";
+        i++;
     }
 
-    int id = 0;
+    i = 0;
+    for (auto s : _semaphoresHost)
+    {
+        if (s != SEM_FAILED)
+        {
+            s = SEM_FAILED;
 
+            if (sem_unlink(_semHostNames[i].c_str()) != 0)
+            {
+                syslog(LOG_ERR, "Terminating error semHostName: %s", strerror(errno));
+            }
+        }
+        i++;
+    }
+
+    i = 0;
     for(sem_t* s: _clientSemaphores)
     {
         if (s != SEM_FAILED)
         {
             s = SEM_FAILED;
-            std::string _semClientName = "client_" + std::to_string(id);
+            std::string _semClientName = "client_" + std::to_string(i);
             if (sem_unlink(_semClientName.c_str()) != 0)
             {
                 syslog(LOG_ERR, "Terminating error semClientName: %s", strerror(errno));
             }
-            std::cout<<"Server: Client " << id <<" semaphore unlinked\n";
+            std::cout<<"Server: Client " << i <<" semaphore unlinked\n";
         }
-        id++;
+        i++;
     }
 
+    _threads.clear();
 }

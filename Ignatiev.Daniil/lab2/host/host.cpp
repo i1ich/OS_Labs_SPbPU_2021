@@ -21,9 +21,8 @@ int main(int argc, char**argv)
         return 1;
     }
 
-    server host;
+    server host(n);
     syslog(LOG_INFO, "Host started with pid %d.", getpid());
-    host.setNumOfClients(n);
     syslog(LOG_INFO, "Number of clients is %d", n);
     host.start();
     syslog(LOG_INFO, "host: stopped.");
