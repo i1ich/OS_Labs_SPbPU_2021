@@ -11,10 +11,6 @@
 #include "../stuff/Constants.h"
 
 
-const std::string Host::_month = "month";
-const std::string Host::_day = "day";
-const std::string Host::_year = "year";
-
 
 Host &Host::getInstance() {
     static Host instance;
@@ -161,9 +157,9 @@ WeatherDTO Host::getDate() {
 
     while (!result && _isRunning) {
         tm date{};
-        day = getDataFromUser(31, Host::_day);
-        month = getDataFromUser(12, Host::_month);
-        year = getDataFromUser(9999, Host::_year);
+        day = getDataFromUser(31, _day);
+        month = getDataFromUser(12, _month);
+        year = getDataFromUser(9999, _year);
         date.tm_year = year - 1900;
         date.tm_mon = month - 1;
         date.tm_mday = day;
@@ -186,6 +182,10 @@ unsigned int Host::getDataFromUser(int end, const std::string &type) {
     while ((data < 0 || data > end) && _isRunning) {
         std::cout << "please enter number of " << type << "( 0 < number <= " << end << " )" << std::endl;
         std::getline(std::cin, buf,'\n');
+        if(buf.compare(Constants::EXIT_CODE) == 0) {
+            getInstance().exit(SIGTERM);
+            return 0;
+        }
         try {
             data = std::stoi(buf);
         }
@@ -198,4 +198,14 @@ unsigned int Host::getDataFromUser(int end, const std::string &type) {
         data = 0;
     }
     return data;
+}
+
+void Host::exit(int signum) {
+    static Host& host = getInstance();
+    syslog(LOG_INFO, "[INFO] stop work");
+    if (host._clientInfo.isConnected()) {
+        kill(host._clientInfo.getPid(), signum);
+        host._clientInfo = ClientInfo(0);
+    }
+    _isRunning = false;
 }

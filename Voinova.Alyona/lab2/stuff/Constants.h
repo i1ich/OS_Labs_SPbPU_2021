@@ -16,9 +16,12 @@ public:
     static const int MIN_TEMPERATURE = -45;
     static const int MAX_TEMPERATURE = 45;
 
+    static const std::string EXIT_CODE;
+
 };
 
-const std::string Constants::SEM_HOST_NAME="HOST_LAB2";
-const std::string Constants::SEM_CLIENT_NAME="CLIENT_LAB2";
+const std::string Constants::SEM_HOST_NAME="/HOST_LAB2";
+const std::string Constants::SEM_CLIENT_NAME="/CLIENT_LAB2";
+const std::string Constants::EXIT_CODE="exit";
 
 #endif //LAB2_CONSTANTS_H

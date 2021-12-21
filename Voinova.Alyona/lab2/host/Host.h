@@ -24,9 +24,9 @@ public:
 
 
 private:
-    static const std::string _month;
-    static const std::string _day ;
-    static const std::string _year;
+    const std::string _month = "month";
+    const std::string _day = "day";
+    const std::string _year = "year";
 
     static Host _instance;
 
@@ -39,11 +39,13 @@ private:
 
     static void handleSignal(int signum, siginfo_t *info, void *ptr);
 
-    static void  printWeatherForDate(WeatherDTO &data);
+    void  printWeatherForDate(WeatherDTO &data);
 
     WeatherDTO getDate();
 
     unsigned int getDataFromUser(int end, const std::string &type);
+
+    void exit(int signum);
 
     Host();
     Host(Host &) = delete;

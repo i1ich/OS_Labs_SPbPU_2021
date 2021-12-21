@@ -35,9 +35,7 @@ void Client::openConnection() {
     } else {
         kill(_host_pid, SIGUSR1);
     }
-
 }
-
 
 void Client::terminate() {
     kill(_host_pid, SIGUSR2);

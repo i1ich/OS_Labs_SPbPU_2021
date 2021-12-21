@@ -43,7 +43,7 @@ void IConn::writeConn(WeatherDTO *buf, size_t size) const {
 
 void IConn::closeConn() {
     if(mq_close(_id) == -1){
-        throw std::runtime_error("writing error " + std::string(strerror(errno)));
+        throw std::runtime_error("writing erro " + std::string(strerror(errno)));
     }
     if(_owner && mq_unlink(_name.c_str()) != 0){
         throw std::runtime_error("closeConn error " + std::string(strerror(errno)));
