@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <syslog.h>
 #include <vector>
+#include <set>
 #include <memory>
 #include "adapter.hpp"
 
@@ -13,17 +14,19 @@ namespace lab
 
     typedef void* (*th_call)(void*);
 
-    typedef std::vector<ITEM_T> array;
+    typedef std::set<ITEM_T> dataset;
+
+    size_t const N_VALUES = 100;
 
     namespace test_data
     {
-        const array data1 = {1, 2, 3, 4, 5};
+        const dataset data1 = {1, 2, 3, 4, 5};
 
-        const array data2 = {6, 7, 8 , 9, 10};
+        const dataset data2 = {6, 7, 8 , 9, 10};
         
-        const array data12 = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        const dataset data12 = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
-        const array empty_data = {};
+        const dataset empty_data = {};
 
         const std::string 
         SC_TEST = "[SC TEST]\t", 
@@ -63,6 +66,7 @@ namespace lab
         {
             conteiner_adapter<CONT_T, ITEM_T>* cont;
             size_t n_threads;
+            dataset input;
         };
 
         /*
@@ -70,7 +74,7 @@ namespace lab
             in set insert input
             return SUCCESS if afte threads temination set equals output
         */
-        THREAD_RC run_threads(array const& input, array const& output, std::vector<th_call>const& th_calls);
+        THREAD_RC run_threads(size_t n_consumers, size_t n_producers);
 
         static void* th_sp_test(void*);
 
@@ -84,23 +88,9 @@ namespace lab
         barrier to n streams
         as I understand it one of the few ways to run multiple threads at the same time
     */
-    void n_barrier(size_t n)
-    {
-        static size_t counter = 0;
-        static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
-        static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+    void n_barrier(size_t n);
 
-        pthread_mutex_lock(&lock);
-
-        counter++;
-        if (counter < n)
-            pthread_cond_wait(&cond, &lock);
-        else
-            pthread_cond_broadcast(&cond);
-        counter--;
-
-        pthread_mutex_unlock(&lock);
-    }
+    std::vector<dataset> create_n_sets(size_t n, size_t set_size);
 }
 
 template <typename CONT_T>
@@ -130,7 +120,7 @@ void* lab::tester<CONT_T>::th_sp_test(void* arg)
     auto& m_args_block = *reinterpret_cast<args_block*>(arg);
     n_barrier(m_args_block.n_threads);
 
-    for (auto const& item : test_data::data1)
+    for (auto const& item : m_args_block.input)
         if (!m_args_block.cont->insert(item))
             return reinterpret_cast<void*>(THREAD_RC::ERROR);
     
@@ -143,7 +133,7 @@ void* lab::tester<CONT_T>::th_sc_test(void* arg)
     auto& m_args_block = *reinterpret_cast<args_block*>(arg);
     n_barrier(m_args_block.n_threads);
 
-    for (auto const& item : test_data::data2)
+    for (auto const& item : m_args_block.input)
         if (!m_args_block.cont->remove(item))
             return reinterpret_cast<void*>(THREAD_RC::ERROR);
     
@@ -160,17 +150,17 @@ void lab::tester<CONT_T>::run(lab::tester<CONT_T>::TEST test)
     {
     case TEST::SINGLE_PRODUCER:{
         result += test_data::SP_TEST;
-        rc = run_threads(test_data::empty_data, test_data::data1, {tester::th_sp_test});
+        rc = run_threads(0, 1);
         break;
     }
     case TEST::SINGLE_CONSUMER:{
         result += test_data::SC_TEST;
-        rc = run_threads(test_data::data2, test_data::empty_data, {tester::th_sc_test});
+        rc = run_threads(1, 0);
         break;
     }
     case TEST::SINGLE_PRODUCER_SINGLE_CONSUMER:{
         result += test_data::SPSC_TEST;
-        rc = run_threads(test_data::data2, test_data::data1, {tester::th_sc_test, tester::th_sp_test});
+        rc = run_threads(1, 1);
         break;
     }
     }
@@ -183,30 +173,44 @@ void lab::tester<CONT_T>::run(lab::tester<CONT_T>::TEST test)
 }
 
 template <typename CONT_T>
-typename lab::tester<CONT_T>::THREAD_RC lab::tester<CONT_T>::run_threads(lab::array const& input, 
-                                                        lab::array const& output, 
-                                                        std::vector<th_call>const& th_calls)
+typename lab::tester<CONT_T>::THREAD_RC lab::tester<CONT_T>::run_threads(size_t n_consumers, size_t n_producers)
 {
-    std::vector<pthread_t> ths(th_calls.size());
+    size_t n_threads = n_producers + n_consumers;
+    std::vector<pthread_t> ths(n_threads);
     conteiner_adapter<CONT_T, ITEM_T> cont;
     THREAD_RC rc;
-    args_block args;
-    args.cont = &cont;
-    args.n_threads = th_calls.size();
+    std::vector<args_block> args_blocks(n_threads);
+    
 
-    for (auto const& item : input)
-        cont.insert(item);
+    auto n_sets = create_n_sets(n_producers + n_consumers, N_VALUES);
 
-    for (size_t i = 0; i < th_calls.size(); i++)
-        pthread_create(&ths[i], NULL, th_calls[i], reinterpret_cast<void*>(&args));
+    
+    for (size_t i = 0; i < n_threads; i++){
+        auto& args = args_blocks[i];
+        args.cont = &cont;
+        args.input = n_sets[i];
+        args.n_threads = n_threads;
+        if (i < n_producers){
+            pthread_create(&ths[i], NULL, tester::th_sp_test, reinterpret_cast<void*>(&args));
+        }
+        else{
+            for  (auto item : n_sets[i])
+                cont.insert(item);
+            pthread_create(&ths[i], NULL, tester::th_sc_test, reinterpret_cast<void*>(&args));
+        }
+    }
 
     THREAD_RC thread_rc;
-
     for (auto& th : ths){
         pthread_join(th, reinterpret_cast<void**>(&thread_rc));
         if (thread_rc != THREAD_RC::SUCCESS)
             rc = THREAD_RC::ERROR;
     }
 
-    return cont.equals(output) ? rc : THREAD_RC::ERROR;
+    dataset all_output;
+
+    for (size_t i = 0; i < n_producers; i++)
+        all_output.merge(n_sets[i]);
+
+    return cont.equals(all_output) ? rc : THREAD_RC::ERROR;
 }  

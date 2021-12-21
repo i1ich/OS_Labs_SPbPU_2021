@@ -1,6 +1,6 @@
 #pragma once 
 
-#include <vector>
+#include <set>
 #include "../include/set.hpp"
 #include "adapter.hpp"
 
@@ -15,7 +15,7 @@ namespace lab
 
         bool remove(ITEM_T const& item);
 
-        bool equals(std::vector<ITEM_T> const& arr) const;
+        bool equals(std::set<ITEM_T> const& arr) const;
 
     private:
 
@@ -36,7 +36,7 @@ bool lab::conteiner_adapter<lab::set<ITEM_T>, ITEM_T>::remove(ITEM_T const& item
 }
 
 template <typename ITEM_T>
-bool lab::conteiner_adapter<lab::set<ITEM_T>, ITEM_T>::equals(std::vector<ITEM_T> const& arr) const
+bool lab::conteiner_adapter<lab::set<ITEM_T>, ITEM_T>::equals(std::set<ITEM_T> const& arr) const
 {
     for (auto const& item : arr){
         if (!m_set.contains(item))

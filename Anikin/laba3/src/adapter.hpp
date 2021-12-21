@@ -17,7 +17,7 @@ namespace lab
 
         bool remove(ITEM_T const& item);
 
-        bool equals(std::vector<ITEM_T> const& arr) const;
+        bool equals(std::set<ITEM_T> const& arr) const;
     };
 }
 
