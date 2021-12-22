@@ -1,0 +1,5 @@
+.idea
+cmake-build-debug
+host_fifo
+host_mq
+host_socket
