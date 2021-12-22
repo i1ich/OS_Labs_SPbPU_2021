@@ -10,7 +10,7 @@ QueueCommonTester::QueueCommonTester(size_t testSize) {
 void* writeNumsToQueue(void* args) {
     SCSPQueue<int>* queue = *((SCSPQueue<int>**)args);
     size_t n = *((size_t*)((u_int8_t*)args + sizeof(SCSPQueue<int>*)));
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         queue->enqueue(i);
     }
     return nullptr;
@@ -20,7 +20,7 @@ void* readNumsFromQueue(void* args) {
     SCSPQueue<int>* queue = *((SCSPQueue<int>**)args);
     size_t n = *((size_t*)((u_int8_t*)args + sizeof(SCSPQueue<int>*)));
     int* numArray = *((int**)((u_int8_t*)args + sizeof(SCSPQueue<int>*) + sizeof(size_t)));
-    int read = 0;
+    size_t read = 0;
     size_t yieldsNum = 0, maxYields = 10 * n;
     while (read < n && yieldsNum < maxYields) {
         if (!queue->empty()) {
@@ -64,7 +64,7 @@ std::string QueueCommonTester::execute() {
     }
     pthread_join(writeThread, NULL);
     pthread_join(readThread, NULL);
-    for (int i = 0; i < _size; i++) {
+    for (int i = 0; i < (int)_size; i++) {
         if (numArray[i] != i) {
             return "FAILED";
         }
