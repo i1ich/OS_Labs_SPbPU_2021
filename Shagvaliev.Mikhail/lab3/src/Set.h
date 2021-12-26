@@ -7,11 +7,6 @@
 
 #include "../util/definitions.h"
 
-class Set;
-
-typedef std::shared_ptr<Set> pSet;
-typedef std::function<int(Any&)> OrderedHasher;
-
 class Set {
 public:
     virtual bool add(Any item) = 0;

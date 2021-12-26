@@ -1,4 +1,4 @@
-#include "LazySet.h"
+#include "../src/LazySet.h"
 
 pSet LazySet::create(const OrderedHasher& _hasher) {
     return pSet(new LazySet(_hasher));
