@@ -71,16 +71,16 @@ void Test::testWriters(SetType setType, TestType testType, int numWriters, int n
                 return;
             }
         }
-        std::cout << "INFO: writer tests passed successfully" << std::endl;
-        std::cout << "INFO: average time: " << (double) time / NUM_REPEATS << std::endl;
     }
+    std::cout << "INFO: writer tests passed successfully" << std::endl;
+    std::cout << "INFO: average time: " << (double) time / NUM_REPEATS << std::endl;
 }
 
 void Test::testAll(SetType setType, TestType testType, int numReaders, int numReading, int numWriters, int numWriting) {
     std::cout << "INFO: start test writing - reading" << std::endl;
     long time = 0;
 
-    std::cout << "num_readers * num_readings = num_writers * num_writings" << std::endl;
+    std::cout << "INFO: num_readers * num_readings = num_writers * num_writings" << std::endl;
     std::vector <Args> possibleNums = getNumsAllTest(numReaders, numReading, numWriters, numWriting, 1, 1, 1, 1);
     possibleNums = withoutRepeat(possibleNums);
 
@@ -109,20 +109,25 @@ void Test::testAll(SetType setType, TestType testType, int numReaders, int numRe
                 pthread_join(writeThreads[q], nullptr);
             }
 
-            std::vector <std::vector<int>> check(readers);
-
             for (int q = 0; q < readers; q++) {
                 ArgsReadWriteTest *rwStruct = createReadWriteArgs(dataRead, q, set);
                 pthread_create(&readThreads[q], nullptr, testReadWrite, rwStruct);
-                check[q] = *rwStruct->check;
             }
 
+            std::vector <std::vector<int>> check(readers);
+
             for (int q = 0; q < readers; q++) {
-                pthread_join(readThreads[q], nullptr);
+                void* temp = nullptr;
+                pthread_join(readThreads[q], &temp);
+                std::vector<int>* vec = (std::vector<int>*)((temp));
+                check[q] = std::vector<int>(readings);
+                for(auto num = 0; num < static_cast<int>(vec->size()); num++){
+                    check[q].at(num) = vec->at(num);
+                }
             }
 
             if (!checkReadWriteTest(check)) {
-                std::cout << "ERROR: invalid result" << std::endl;
+                std::cout << "ERROR: invalid result at iteration: " << i << std::endl;
                 return;
             }
         }
@@ -131,7 +136,7 @@ void Test::testAll(SetType setType, TestType testType, int numReaders, int numRe
         time += end_time - start_time;
     }
 
-    std::cout << "INFO: average time: " << (double) time / NUM_REPEATS << std::endl;
+    std::cout << "INFO: average time: " << (double) time / (NUM_REPEATS * static_cast<int>(possibleNums.size())) << std::endl;
     std::cout << "INFO: test read write complete successfully" << std::endl;
 }
 
@@ -153,7 +158,7 @@ std::map<int, std::vector<int>> Test::getData(TestType type, int numProducer, in
             for (int i = 0; i < numProducer; i++) {
                 result[i] = std::vector<int>();
                 for (int j = 0; j < numItems; j++) {
-                    result[i].insert(result[i].begin() + j, static_cast<int>(mersenne()) % 1000);
+                    result[i].insert(result[i].begin() + j, static_cast<int>(mersenne()) % 100000);
                 }
             }
             break;
@@ -229,12 +234,14 @@ void *Test::testReadWrite(void *args) {
     for (int i = 0; i < (int)data->data->size(); i++) {
         for (int j = 0; j < NUM_ATEMPTS; j++) {
             if (data->set->remove((*data->data)[i])) {
-                (*data->check)[i]++;
+                pthread_mutex_lock(&data->thread);
+                data->check->at(i)++;
+                pthread_mutex_unlock(&data->thread);
                 break;
             }
         }
     }
-    return nullptr;
+    return data->check;
 }
 
 bool Test::checkSet(Set *set, std::vector<int> &vector) {

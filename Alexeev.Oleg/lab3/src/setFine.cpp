@@ -51,13 +51,10 @@ bool SetFine::remove(int value) {
     }
 
     if(current->getValue() == value){
+        Node* tmp = current;
         prev->setNextNode(current->getNextNode());
+        delete tmp;
         prev->unlock();
-        prev = current;
-        current = current->getNextNode();
-        current->lock();
-        prev->unlock();
-        delete prev;
         current->unlock();
         return true;
     }

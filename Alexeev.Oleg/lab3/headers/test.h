@@ -8,7 +8,7 @@
 #include "utils.h"
 #include "set.h"
 
-#define NUM_REPEATS 1000
+#define NUM_REPEATS 10
 #define NUM_ATEMPTS 20
 
 class Test{
@@ -45,6 +45,7 @@ private:
         Set* set;
         std::vector<int>* data;
         std::vector<int>* check;
+        pthread_mutex_t thread;
     };
 
     struct Args{
