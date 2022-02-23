@@ -1,0 +1,8 @@
+/home/ilia/lab2/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/ilia/lab2/cmake-build-debug/CMakeFiles/client_seg.dir
+/home/ilia/lab2/cmake-build-debug/CMakeFiles/host_fifo.dir
+/home/ilia/lab2/cmake-build-debug/CMakeFiles/host_seg.dir
+/home/ilia/lab2/cmake-build-debug/CMakeFiles/client_fifo.dir
+/home/ilia/lab2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/ilia/lab2/cmake-build-debug/CMakeFiles/host_mq.dir
+/home/ilia/lab2/cmake-build-debug/CMakeFiles/client_mq.dir

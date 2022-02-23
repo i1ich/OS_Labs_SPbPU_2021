@@ -1,0 +1,105 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "lab2",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "client_fifo::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-client_fifo-Debug-c24a1dc5406516bf2e42.json",
+					"name" : "client_fifo",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "client_mq::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-client_mq-Debug-44253bf8b73077fdc04e.json",
+					"name" : "client_mq",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "client_seg::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-client_seg-Debug-795928173f7643433644.json",
+					"name" : "client_seg",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "host_fifo::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-host_fifo-Debug-3a0896812b52945fcc1a.json",
+					"name" : "host_fifo",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "host_mq::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-host_mq-Debug-dcf47390cf3dd8a68c87.json",
+					"name" : "host_mq",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "host_seg::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-host_seg-Debug-9f2a42a869c9a13917c5.json",
+					"name" : "host_seg",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/ilia/lab2/cmake-build-debug",
+		"source" : "/home/ilia/lab2"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}
